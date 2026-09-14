@@ -118,7 +118,12 @@ export function evaluateInclusionCriterion(
     const maxEcog = ecogMatch ? parseInt(ecogMatch[1] || ecogMatch[2], 10) : 1;
 
     // Check metadata or clinical status or profile
-    const rawEcog = (profile.metadata as any)?.ecog_score ?? (profile as any).clinical_status?.ecog ?? (profile as any).ecog;
+    const rawEcog =
+      (profile.metadata as any)?.ecog_score ??
+      (profile.metadata as any)?.ecog_performance_status ??
+      profile.clinical_status?.ecog_performance_status ??
+      (profile as any).clinical_status?.ecog ??
+      (profile as any).ecog;
     if (rawEcog !== undefined && rawEcog !== null) {
       const ecogVal = Number(rawEcog);
       const satisfies = !isNaN(ecogVal) && ecogVal <= maxEcog;
@@ -758,7 +763,10 @@ export function evaluateExclusionCriterion(
       };
     }
 
-    const infectionStatus = (profile.metadata as any)?.active_serious_infection ?? (profile.metadata as any)?.infection;
+    const infectionStatus =
+      profile.clinical_status?.active_serious_infection ??
+      (profile.metadata as any)?.active_serious_infection ??
+      (profile.metadata as any)?.infection;
     if (infectionStatus === false) {
       return {
         criterion_id: criterion.criterion_id,
@@ -832,7 +840,10 @@ export function evaluateExclusionCriterion(
       };
     }
 
-    const cardiacStatus = (profile.metadata as any)?.uncontrolled_cardiac_disease ?? (profile.metadata as any)?.cardiac_disease;
+    const cardiacStatus =
+      profile.clinical_status?.uncontrolled_cardiac_disease ??
+      (profile.metadata as any)?.uncontrolled_cardiac_disease ??
+      (profile.metadata as any)?.cardiac_disease;
     if (cardiacStatus === false) {
       return {
         criterion_id: criterion.criterion_id,
@@ -907,6 +918,8 @@ export function evaluateExclusionCriterion(
     }
 
     const hyperStatus =
+      (profile.treatment_history as any)?.investigational_therapy_hypersensitivity ??
+      (profile.treatment_history as any)?.severe_hypersensitivity_to_investigational_therapy ??
       (profile.metadata as any)?.investigational_therapy_hypersensitivity ??
       (profile.metadata as any)?.severe_hypersensitivity;
     if (hyperStatus === false) {
@@ -982,6 +995,7 @@ export function evaluateExclusionCriterion(
     }
 
     const recentTherapyStatus =
+      profile.treatment_history?.recent_systemic_anticancer_therapy ??
       (profile.metadata as any)?.recent_systemic_anticancer_therapy ??
       (profile.metadata as any)?.recent_therapy;
     if (recentTherapyStatus === false) {

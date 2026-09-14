@@ -1,0 +1,10 @@
+{
+  "patient_profile_id": "synthetic-patient-empty-001",
+  "demographics": {},
+  "conditions": [],
+  "clinical_status": {},
+  "lab_values": [],
+  "allergies": [],
+  "medications": [],
+  "treatment_history": {}
+}

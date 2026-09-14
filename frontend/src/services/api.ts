@@ -12,7 +12,8 @@ import {
 const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || '';
 const FASTAPI_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FASTAPI_BASE_URL) ||
-  'http://localhost:8000';
+  API_BASE_URL ||
+  '';
 
 /**
  * Service to interact with the FastAPI Backend.

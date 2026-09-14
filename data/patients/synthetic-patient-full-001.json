@@ -1,0 +1,43 @@
+{
+  "patient_profile_id": "synthetic-patient-full-001",
+  "demographics": {
+    "age": 52,
+    "sex": "female",
+    "pregnancy_status": "not_pregnant",
+    "breastfeeding_status": false
+  },
+  "conditions": [
+    {
+      "name": "advanced solid tumor",
+      "normalized_name": "advanced solid tumor",
+      "status": "active",
+      "documented": true
+    }
+  ],
+  "clinical_status": {
+    "ecog_performance_status": 1,
+    "active_serious_infection": false,
+    "uncontrolled_cardiac_disease": false
+  },
+  "lab_values": [
+    { "normalized_name": "anc", "name": "anc", "value": 2400, "unit": "cells/mcL" },
+    { "normalized_name": "platelets", "name": "platelets", "value": 185000, "unit": "cells/mcL" },
+    { "normalized_name": "egfr", "name": "egfr", "value": 68, "unit": "mL/min/1.73m²" }
+  ],
+  "vital_signs": {
+    "systolic_bp": 125,
+    "diastolic_bp": 78,
+    "unit": "mmHg"
+  },
+  "allergies": [
+    { "substance": "none documented", "severity": null }
+  ],
+  "medications": [],
+  "treatment_history": {
+    "recent_systemic_anticancer_therapy": false,
+    "investigational_therapy_hypersensitivity": false,
+    "severe_hypersensitivity_to_investigational_therapy": false,
+    "prior_therapies": [],
+    "last_treatment_date": null
+  }
+}

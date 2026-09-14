@@ -527,6 +527,422 @@ async function startServer() {
   app.post('/api/v1/trials/:trialId/patients/:patientProfileId/workflow-evaluation', finalEvaluationHandler);
   app.post('/api/v1/eligibility/final/:trialId/:patientProfileId', finalEvaluationHandler);
 
+  // --------------------------------------------------------------------------
+  // LANGGRAPH WORKFLOW ENGINE EVALUATION ENDPOINT (/api/v1/workflow/evaluate)
+  // --------------------------------------------------------------------------
+  const runWorkflowEvaluationLogic = (
+    trialId: string,
+    rawPatient: any,
+    referenceDate?: string | null
+  ) => {
+    const trial = dataStore.getTrial(trialId);
+    if (!trial) {
+      throw new Error(`Trial with ID '${trialId}' not found.`);
+    }
+
+    const patientProfileId = rawPatient?.patient_profile_id || 'PATIENT-001';
+    let patient = dataStore.getPatient(patientProfileId);
+
+    if (!patient && rawPatient) {
+      const demographics = rawPatient.demographics || {};
+      const clinicalStatus = rawPatient.clinical_status || {};
+      const treatmentHistory = rawPatient.treatment_history || {};
+      const labs = rawPatient.labs || {};
+
+      const lab_values: any[] = [];
+      const addLab = (name: string, lab: any) => {
+        if (lab && lab.value != null) {
+          lab_values.push({
+            name,
+            normalized_name: name.toLowerCase(),
+            value: lab.value,
+            unit: lab.unit || null,
+            reference_range: lab.reference_range || null,
+            source: 'patient_json',
+          });
+        }
+      };
+
+      addLab('eGFR', labs.egfr);
+      addLab('ANC', labs.anc);
+      addLab('Platelets', labs.platelets);
+      addLab('Hemoglobin', labs.hemoglobin);
+      addLab('AST', labs.ast);
+      addLab('ALT', labs.alt);
+      addLab('Bilirubin', labs.bilirubin);
+      if (labs.other_labs) {
+        for (const [k, v] of Object.entries(labs.other_labs)) {
+          addLab(k, v);
+        }
+      }
+
+      patient = {
+        patient_profile_id: patientProfileId,
+        profile_status: 'complete',
+        created_at: new Date().toISOString(),
+        demographics: {
+          age: demographics.age ?? null,
+          sex: demographics.sex ?? null,
+          pregnancy_status: demographics.pregnancy_status ?? null,
+          breastfeeding_status: demographics.breastfeeding_status ?? null,
+          height: demographics.height_cm ?? demographics.height ?? null,
+          weight: demographics.weight_kg ?? demographics.weight ?? null,
+        },
+        conditions: (rawPatient.conditions || []).map((c: any) => ({
+          name: c.name,
+          normalized_name: c.name?.toLowerCase?.() || c.name,
+          status: c.status || 'active',
+          source: c.source_provenance || 'patient_json',
+        })),
+        medical_history: [],
+        medications: (rawPatient.medications || []).map((m: any) => ({
+          name: m.name,
+          normalized_name: m.name?.toLowerCase?.() || m.name,
+          dose: m.dose || null,
+          frequency: m.frequency || null,
+          is_current: m.status === 'active' || m.status === 'current',
+          source: 'patient_json',
+        })),
+        lab_values,
+        allergies: (rawPatient.allergies || []).map((a: any) => ({
+          allergen: a.substance || a.allergen || 'Unknown',
+          normalized_allergen: (a.substance || a.allergen || 'unknown').toLowerCase(),
+          severity: a.severity || null,
+          source: 'patient_json',
+        })),
+        vital_signs: rawPatient.vital_signs
+          ? {
+              systolic_bp: rawPatient.vital_signs.blood_pressure?.systolic ?? null,
+              diastolic_bp: rawPatient.vital_signs.blood_pressure?.diastolic ?? null,
+              heart_rate: rawPatient.vital_signs.heart_rate ?? null,
+              unit: rawPatient.vital_signs.blood_pressure?.unit || 'mmHg',
+            }
+          : null,
+        missing_information: [],
+        clinical_status: {
+          ecog_performance_status: clinicalStatus.ecog_performance_status ?? null,
+          active_serious_infection: clinicalStatus.active_serious_infection ?? null,
+          uncontrolled_cardiac_disease: clinicalStatus.uncontrolled_cardiac_disease ?? null,
+        },
+        treatment_history: {
+          recent_systemic_anticancer_therapy:
+            treatmentHistory.recent_systemic_anticancer_therapy ?? null,
+          prior_therapies: treatmentHistory.prior_therapies || [],
+          last_treatment_date: treatmentHistory.last_treatment_date || null,
+        },
+        metadata: {
+          ecog_score: clinicalStatus.ecog_performance_status ?? null,
+          active_serious_infection: clinicalStatus.active_serious_infection ?? null,
+          uncontrolled_cardiac_disease: clinicalStatus.uncontrolled_cardiac_disease ?? null,
+          recent_systemic_anticancer_therapy:
+            treatmentHistory.recent_systemic_anticancer_therapy ?? null,
+        },
+      };
+    }
+
+    if (!patient) {
+      throw new Error(`Patient profile '${patientProfileId}' not found.`);
+    }
+
+    const inclusionResp = evaluateAllInclusionCriteria(
+      trialId,
+      patient.patient_profile_id,
+      trial.inclusion_criteria || [],
+      patient
+    );
+
+    const exclusionResp = evaluateAllExclusionCriteria(
+      trialId,
+      patient.patient_profile_id,
+      trial.exclusion_criteria || [],
+      patient
+    );
+
+    const contradictionResp = evaluateContradictions(
+      trialId,
+      patient.patient_profile_id,
+      patient,
+      trial,
+      inclusionResp.criteria_results,
+      exclusionResp.criteria_results
+    );
+
+    const finalResult = evaluateFinalEligibility(
+      trialId,
+      patient.patient_profile_id,
+      inclusionResp,
+      exclusionResp,
+      contradictionResp,
+      patient,
+      trial
+    );
+
+    const assessmentId = `ASM-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    const findings = [
+      ...contradictionResp.contradictions.map((c, i) => ({
+        finding_id: c.contradiction_id || `CONTRADICTION-${i + 1}`,
+        trial_id: trialId,
+        contradiction_type: 'CLINICAL_CONTRADICTION' as const,
+        severity: (c.severity === 'critical' ? 'CRITICAL' : c.severity === 'high' ? 'WARNING' : 'INFO') as any,
+        title: c.title,
+        description: c.description,
+        criterion_ids: [] as string[],
+        patient_fields: (c.patient_evidence || []).map((e: any) => e.field),
+        evidence: c.patient_evidence,
+        recommended_action: c.suggested_reconciliation || c.clinical_risk_rationale || '',
+      })),
+      ...contradictionResp.silent_exclusions.map((s, i) => ({
+        finding_id: s.trigger_id || `SILENT-${i + 1}`,
+        trial_id: trialId,
+        contradiction_type: 'SILENT_EXCLUSION' as const,
+        severity: 'CRITICAL' as const,
+        title: s.name,
+        description: s.clinical_rationale,
+        criterion_ids: [] as string[],
+        patient_fields: s.patient_evidence ? [s.patient_evidence.field] : [],
+        evidence: s.patient_evidence,
+        recommended_action: 'Perform clinical verification for silent exclusion.',
+      })),
+    ];
+
+    const decisionEvidence = finalResult.decision_factors.map((f, i) => ({
+      criterion_id: f.criterion_id || `DEC-CRIT-${i + 1}`,
+      criterion_text: f.criterion_text || f.reason,
+      patient_value: f.patient_value,
+      status:
+        f.status === 'satisfied'
+          ? 'PASS'
+          : f.status === 'unsatisfied'
+          ? 'FAIL'
+          : f.status === 'triggered'
+          ? 'TRIGGERED'
+          : f.status === 'not_triggered'
+          ? 'CLEAR'
+          : f.status === 'critical_conflict'
+          ? 'FAIL'
+          : f.status === 'silent_exclusion'
+          ? 'SILENT_EXCLUSION'
+          : 'UNKNOWN',
+      source_page: f.protocol_page || (f.type === 'exclusion' ? 2 : 1),
+      source_document: `${trial.trial_title || trialId}.pdf`,
+      source_excerpt: f.protocol_evidence?.text || f.reason,
+      originating_agent:
+        f.type === 'inclusion'
+          ? 'InclusionMatchingAgent'
+          : f.type === 'exclusion'
+          ? 'ExclusionDetectionAgent'
+          : f.type === 'silent_exclusion'
+          ? 'ContradictionAgent'
+          : 'DecisionReviewer',
+    }));
+
+    const workflowState = {
+      assessment_id: assessmentId,
+      trial_id: trialId,
+      patient_profile_id: patient.patient_profile_id,
+      protocol_evidence: (dataStore.searchRAG(trialId, 'clinical trial eligibility criteria', 10) || []).map((c, i) => ({
+        chunk_id: c.chunk_id,
+        trial_id: trialId,
+        criterion_id: `CHUNK-${i + 1}`,
+        criterion_type: c.criterion_type || 'criterion',
+        text: c.text,
+        score: c.similarity_score,
+        source_page: c.page_number || 1,
+        source_document: `${trial.trial_title || trialId}.pdf`,
+        source_excerpt: c.text,
+      })),
+      inclusion_assessment: {
+        trial_id: trialId,
+        patient_profile_id: patient.patient_profile_id,
+        overall_status:
+          inclusionResp.overall_inclusion_status === 'satisfied'
+            ? ('MET' as const)
+            : inclusionResp.overall_inclusion_status === 'unsatisfied'
+            ? ('NOT_MET' as const)
+            : ('UNKNOWN' as const),
+        criteria: inclusionResp.criteria_results.map((c) => ({
+          criterion_id: c.criterion_id,
+          trial_id: trialId,
+          status:
+            c.result === 'satisfied'
+              ? ('PASS' as const)
+              : c.result === 'unsatisfied'
+              ? ('FAIL' as const)
+              : ('UNKNOWN' as const),
+          criterion_text: c.criterion_text,
+          patient_value: c.patient_evidence?.value,
+          expected_requirement: c.reason,
+          rationale: c.reason,
+          evidence: c.patient_evidence ? { [c.patient_evidence.field]: c.patient_evidence.value } : null,
+          source_page: c.protocol_evidence?.source_page || 1,
+          source_document: `${trial.trial_title || trialId}.pdf`,
+          source_excerpt: c.protocol_evidence?.text || c.criterion_text,
+        })),
+        missing_information: inclusionResp.criteria_results.flatMap((c) => c.missing_information || []),
+        warnings: [] as string[],
+      },
+      exclusion_assessment: {
+        trial_id: trialId,
+        patient_profile_id: patient.patient_profile_id,
+        overall_status:
+          exclusionResp.overall_exclusion_status === 'triggered'
+            ? ('EXCLUDED' as const)
+            : exclusionResp.overall_exclusion_status === 'not_triggered'
+            ? ('NOT_EXCLUDED' as const)
+            : ('UNKNOWN' as const),
+        criteria: exclusionResp.criteria_results.map((c) => ({
+          criterion_id: c.criterion_id,
+          trial_id: trialId,
+          status:
+            c.result === 'triggered'
+              ? ('TRIGGERED' as const)
+              : c.result === 'not_triggered'
+              ? ('CLEAR' as const)
+              : ('UNKNOWN' as const),
+          criterion_text: c.criterion_text,
+          patient_value: c.patient_evidence?.value,
+          exclusion_requirement: c.reason,
+          rationale: c.reason,
+          evidence: c.patient_evidence ? { [c.patient_evidence.field]: c.patient_evidence.value } : null,
+          source_page: c.protocol_evidence?.source_page || 2,
+          source_document: `${trial.trial_title || trialId}.pdf`,
+          source_excerpt: c.protocol_evidence?.text || c.criterion_text,
+        })),
+        missing_information: exclusionResp.criteria_results.flatMap((c) => c.missing_information || []),
+        warnings: [] as string[],
+      },
+      contradiction_assessment: {
+        trial_id: trialId,
+        patient_profile_id: patient.patient_profile_id,
+        findings,
+        checked_criteria: [] as string[],
+        warnings: [] as string[],
+        has_critical_findings:
+          contradictionResp.has_critical_conflicts || contradictionResp.has_silent_exclusions,
+      },
+      decision_assessment: {
+        trial_id: trialId,
+        patient_profile_id: patient.patient_profile_id,
+        final_status: finalResult.final_decision,
+        requires_human_review: finalResult.final_decision !== 'ELIGIBLE',
+        primary_reasons: [finalResult.explanation],
+        decision_evidence: decisionEvidence,
+        unresolved_information: finalResult.missing_information || [],
+        contradiction_findings: findings,
+        warnings: [] as string[],
+        disclaimer:
+          'This evaluation is an automated decision-support suggestion and does not substitute for independent clinical judgment.',
+      },
+      warnings: [] as string[],
+      errors: [] as string[],
+      current_step: 'END',
+    };
+
+    dataStore.saveAssessment({
+      assessment_id: assessmentId,
+      trial_id: trialId,
+      patient_profile_id: patient.patient_profile_id,
+      reference_date: referenceDate || new Date().toISOString(),
+      workflow_status: 'COMPLETED',
+      final_decision: finalResult.final_decision,
+      current_step: 'END',
+      created_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      has_errors: false,
+      error_count: 0,
+      warning_count: 0,
+      warnings: [],
+      errors: [],
+      snapshot: workflowState,
+      traces: [
+        {
+          sequence: 1,
+          stage: 'inclusion_matching',
+          status: 'completed',
+          payload: workflowState.inclusion_assessment,
+          created_at: new Date().toISOString(),
+        },
+        {
+          sequence: 2,
+          stage: 'exclusion_detection',
+          status: 'completed',
+          payload: workflowState.exclusion_assessment,
+          created_at: new Date().toISOString(),
+        },
+        {
+          sequence: 3,
+          stage: 'contradiction_detection',
+          status: 'completed',
+          payload: workflowState.contradiction_assessment,
+          created_at: new Date().toISOString(),
+        },
+        {
+          sequence: 4,
+          stage: 'decision_reviewer',
+          status: 'completed',
+          payload: workflowState.decision_assessment,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    });
+
+    console.log(
+      `[WORKFLOW AUDIT] Trial=${trialId} Patient=${patient.patient_profile_id} AssessmentId=${assessmentId} Decision=${finalResult.final_decision}`
+    );
+
+    return workflowState;
+  };
+
+  app.post('/api/v1/workflow/evaluate', (req, res) => {
+    try {
+      const trialId = req.body.trial_id;
+      const patientProfile = req.body.patient_profile;
+      const referenceDate = req.body.reference_date;
+
+      if (!trialId) {
+        return res.status(400).json({ detail: 'trial_id is required' });
+      }
+
+      const workflowState = runWorkflowEvaluationLogic(trialId, patientProfile, referenceDate);
+      res.json(workflowState);
+    } catch (err: any) {
+      console.error('[WORKFLOW EVALUATION ERROR]', err?.message || err);
+      res.status(err?.status || 400).json({ detail: err?.message || 'Workflow evaluation failed' });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // PERSISTED ASSESSMENT AUDIT HISTORY (MODULE 10)
+  // --------------------------------------------------------------------------
+  app.get('/api/v1/assessments', (req, res) => {
+    const trial_id = req.query.trial_id as string | undefined;
+    const patient_profile_id = req.query.patient_profile_id as string | undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+    const assessments = dataStore.getAssessments({ trial_id, patient_profile_id, limit, offset });
+    res.json(assessments);
+  });
+
+  app.get('/api/v1/assessments/:assessmentId', (req, res) => {
+    const assessment = dataStore.getAssessment(req.params.assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ detail: `Assessment '${req.params.assessmentId}' not found.` });
+    }
+    res.json(assessment);
+  });
+
+  // Pre-seed sample assessments if store is currently empty
+  try {
+    const defaultTrial = dataStore.getTrials()[0]?.trial_id;
+    const defaultPatient = dataStore.getPatients()[0];
+    if (defaultTrial && defaultPatient) {
+      runWorkflowEvaluationLogic(defaultTrial, defaultPatient);
+    }
+  } catch (err) {
+    // Non-fatal if seeding fails
+  }
+
   app.post('/api/v1/eligibility/evaluate', (req, res) => {
     const trialId = req.body.trial_id;
     const patientProfileId = req.body.patient_id || req.body.patient_profile_id;

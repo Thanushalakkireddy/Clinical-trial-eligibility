@@ -9,12 +9,43 @@ import {
 } from './types';
 import { buildStructuredProfile } from './normalization';
 
+export interface AssessmentSummary {
+  assessment_id: string;
+  trial_id: string;
+  patient_profile_id: string;
+  reference_date?: string | null;
+  workflow_status: string;
+  final_decision?: 'ELIGIBLE' | 'NOT_ELIGIBLE' | 'MORE_INFORMATION_REQUIRED' | null;
+  current_step?: string | null;
+  created_at?: string | null;
+  completed_at?: string | null;
+  has_errors: boolean;
+  error_count: number;
+  warning_count: number;
+}
+
+export interface AssessmentTrace {
+  sequence: number;
+  stage: string;
+  status?: string | null;
+  payload?: Record<string, any> | null;
+  created_at?: string | null;
+}
+
+export interface AssessmentDetail extends AssessmentSummary {
+  warnings: string[];
+  errors: string[];
+  snapshot?: Record<string, any> | null;
+  traces: AssessmentTrace[];
+}
+
 export class DataStore {
   private trials: Map<string, ProtocolExtractionResponse> = new Map();
   private trialFiles: Map<string, { filename: string; size: number; uploadDate: string }> = new Map();
   private patients: Map<string, StructuredPatientProfile> = new Map();
   private chunks: Map<string, RAGChunk[]> = new Map();
   private indexedTrials: Set<string> = new Set();
+  private assessments: Map<string, AssessmentDetail> = new Map();
 
   constructor() {
     this.loadFromDisk();
@@ -26,6 +57,7 @@ export class DataStore {
     this.patients.clear();
     this.chunks.clear();
     this.indexedTrials.clear();
+    this.assessments.clear();
   }
 
   public reloadFromDisk(): void {
@@ -256,7 +288,16 @@ export class DataStore {
   }
 
   public getTrial(trialId: string): ProtocolExtractionResponse | null {
-    const trial = this.trials.get(trialId);
+    let trial = this.trials.get(trialId);
+    if (!trial) {
+      // Check prefix/suffix alias (e.g. trial_mu1pv9rf_6qkd3j vs trial_mu1pv9rf_6qkd3)
+      for (const [id, t] of this.trials.entries()) {
+        if (id.startsWith(trialId) || trialId.startsWith(id)) {
+          trial = t;
+          break;
+        }
+      }
+    }
     if (!trial) return null;
     if (!Array.isArray(trial.inclusion_criteria)) trial.inclusion_criteria = [];
     if (!Array.isArray(trial.exclusion_criteria)) trial.exclusion_criteria = [];
@@ -443,6 +484,50 @@ export class DataStore {
       criterion_type: item.chunk.criterion_type || undefined,
       similarity_score: item.score,
     }));
+  }
+
+  public saveAssessment(detail: AssessmentDetail): void {
+    this.assessments.set(detail.assessment_id, detail);
+  }
+
+  public getAssessments(filter?: {
+    trial_id?: string;
+    patient_profile_id?: string;
+    limit?: number;
+    offset?: number;
+  }): AssessmentSummary[] {
+    let list = Array.from(this.assessments.values());
+    if (filter?.trial_id) {
+      list = list.filter((a) => a.trial_id === filter.trial_id);
+    }
+    if (filter?.patient_profile_id) {
+      list = list.filter((a) => a.patient_profile_id === filter.patient_profile_id);
+    }
+    // Sort newest first
+    list.sort(
+      (a, b) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+    const offset = filter?.offset || 0;
+    const limit = filter?.limit || 50;
+    return list.slice(offset, offset + limit).map((a) => ({
+      assessment_id: a.assessment_id,
+      trial_id: a.trial_id,
+      patient_profile_id: a.patient_profile_id,
+      reference_date: a.reference_date,
+      workflow_status: a.workflow_status,
+      final_decision: a.final_decision,
+      current_step: a.current_step,
+      created_at: a.created_at,
+      completed_at: a.completed_at,
+      has_errors: a.has_errors,
+      error_count: a.error_count,
+      warning_count: a.warning_count,
+    }));
+  }
+
+  public getAssessment(id: string): AssessmentDetail | null {
+    return this.assessments.get(id) || null;
   }
 }
 

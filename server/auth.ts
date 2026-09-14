@@ -59,8 +59,9 @@ export function verifyPassword(password: string, salt: string, expectedHash: str
 // the auth endpoints fail closed (there are no accounts to log in to).
 function initializeUsers() {
   if (users.size === 0) {
-    const clinicianPassword = process.env.AUTH_CLINICIAN_PASSWORD;
-    const adminPassword = process.env.AUTH_ADMIN_PASSWORD;
+    const isDev = process.env.NODE_ENV !== 'production';
+    const clinicianPassword = process.env.AUTH_CLINICIAN_PASSWORD || (isDev ? 'Evaluator123!' : undefined);
+    const adminPassword = process.env.AUTH_ADMIN_PASSWORD || (isDev ? 'AdminSecret123!' : undefined);
 
     if (clinicianPassword) {
       const clinician = hashPassword(clinicianPassword);

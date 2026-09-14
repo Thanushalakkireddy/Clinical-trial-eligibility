@@ -1,0 +1,26 @@
+{
+  "patient_profile_id": "synthetic-patient-partial-001",
+  "demographics": {
+    "age": 52,
+    "sex": "female"
+  },
+  "conditions": [
+    {
+      "name": "advanced solid tumor",
+      "normalized_name": "advanced solid tumor",
+      "status": "active",
+      "documented": true
+    }
+  ],
+  "clinical_status": {
+    "ecog_performance_status": 1
+  },
+  "lab_values": [
+    { "normalized_name": "anc", "name": "anc", "value": 2400, "unit": "cells/mcL" }
+  ],
+  "allergies": [],
+  "medications": [],
+  "treatment_history": {
+    "recent_systemic_anticancer_therapy": false
+  }
+}
