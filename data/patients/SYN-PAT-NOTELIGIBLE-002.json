@@ -1,0 +1,96 @@
+{
+  "patient_profile_id": "SYN-PAT-NOTELIGIBLE-002",
+  "profile_status": "processed",
+  "created_at": "2026-09-14T20:59:54.938Z",
+  "demographics": {
+    "age": 8,
+    "sex": "male",
+    "height": 178,
+    "weight": null,
+    "bmi": null,
+    "pregnancy_status": null,
+    "breastfeeding_status": null
+  },
+  "conditions": [],
+  "medical_history": [],
+  "medications": [],
+  "lab_values": [
+    {
+      "name": "eGFR",
+      "normalized_name": "egfr",
+      "value": 72,
+      "unit": "mL/min/1.73m²",
+      "original_unit": "mL/min/1.73m2",
+      "reference_range": null,
+      "normalization_status": "normalized",
+      "source": "uploaded JSON",
+      "source_document": "patient_not_eligible.json",
+      "original_field": "labs.egfr"
+    }
+  ],
+  "allergies": [],
+  "vital_signs": null,
+  "missing_information": [
+    {
+      "field": "weight",
+      "status": "unknown",
+      "category": "demographics",
+      "description": "Patient weight was not provided."
+    },
+    {
+      "field": "cardiac_history",
+      "status": "unknown",
+      "category": "conditions",
+      "description": "No cardiovascular history or cardiac conditions reported."
+    },
+    {
+      "field": "infectious_disease",
+      "status": "unknown",
+      "category": "conditions",
+      "description": "No infectious disease history (HIV, Hepatitis B/C) reported."
+    },
+    {
+      "field": "allergies",
+      "status": "unknown",
+      "category": "allergies",
+      "description": "No known drug or environmental allergies documented."
+    }
+  ],
+  "clinical_notes_raw": null,
+  "metadata": {
+    "source": "Uploaded JSON",
+    "source_document": "patient_not_eligible.json",
+    "extraction_timestamp": "2026-09-14T20:59:54.937Z",
+    "extracted_fields": [
+      "patient_id",
+      "age",
+      "sex",
+      "height",
+      "lab_values",
+      "labs",
+      "ecog_performance_status"
+    ],
+    "ecog_score": 1,
+    "ecog_performance_status": 1,
+    "clinical_status": {
+      "ecog_performance_status": 1,
+      "active_serious_infection": null,
+      "uncontrolled_cardiac_disease": null
+    },
+    "treatment_history": {
+      "recent_systemic_anticancer_therapy": null,
+      "investigational_therapy_hypersensitivity": null,
+      "severe_hypersensitivity_to_investigational_therapy": null
+    }
+  },
+  "clinical_status": {
+    "ecog_performance_status": 1,
+    "active_serious_infection": null,
+    "uncontrolled_cardiac_disease": null
+  },
+  "treatment_history": {
+    "recent_systemic_anticancer_therapy": null,
+    "investigational_therapy_hypersensitivity": null,
+    "severe_hypersensitivity_to_investigational_therapy": null
+  }
+}
