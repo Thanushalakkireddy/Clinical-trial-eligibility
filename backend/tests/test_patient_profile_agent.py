@@ -386,3 +386,131 @@ def test_api_invalid_patient_input():
         # Invalid content type / body
         response = client.post("/api/v1/patients/extract-profile", content="Not json", headers={"content-type": "application/json"})
         assert response.status_code == 400
+
+
+def test_api_extract_patient_document_pdf(synthetic_patient_pdf: Path):
+    """Test POST /api/v1/patients/extract-document with PDF upload and UI compatibility fields."""
+    app = create_app()
+
+    mock_llm_json = {
+        "patient_profile_id": "PT-DOC-001",
+        "demographics": {"age": 58, "sex": "female", "pregnancy_status": "not_pregnant"},
+        "clinical_status": {"active_serious_infection": False, "uncontrolled_cardiac_disease": False},
+        "labs": {
+            "egfr": {"value": 64.0, "unit": "mL/min/1.73m²"},
+            "anc": {"value": 2100.0, "unit": "cells/mcL"},
+        },
+        "page_evidence": [
+            {"field": "labs.egfr", "value": 64.0, "unit": "mL/min/1.73m²", "source_page": 2, "source_excerpt": "eGFR: 64"}
+        ],
+    }
+
+    with patch("app.agents.patient_profile_agent.GeminiLLMService.generate_json", AsyncMock(return_value=mock_llm_json)), \
+         patch("app.llm.xai_service.XAiLLMService.generate_json", AsyncMock(return_value=mock_llm_json)):
+        with TestClient(app) as client:
+            with open(synthetic_patient_pdf, "rb") as pdf_bytes:
+                files = {"file": ("synthetic_patient.pdf", pdf_bytes, "application/pdf")}
+                response = client.post("/api/v1/patients/extract-document", files=files)
+
+            assert response.status_code == 200, response.text
+            data = response.json()
+            assert data["patient_profile_id"] == "PT-DOC-001"
+            assert data["sourceType"] == "Uploaded PDF"
+            assert data["sourceDocument"] == "synthetic_patient.pdf"
+            assert isinstance(data["extractedFields"], list)
+            assert "demographics.age" in data["extractedFields"]
+            assert "labs.egfr" in data["extractedFields"]
+            assert len(data["profile"]["lab_values"]) >= 2
+            assert any(lv["name"] == "eGFR" for lv in data["profile"]["lab_values"])
+            assert isinstance(data["profile"]["missing_information"], list)
+
+
+def test_api_extract_patient_document_pdf_without_llm_deterministic_fallback(synthetic_patient_pdf: Path):
+    """Test POST /api/v1/patients/extract-document succeeds via deterministic fallback when LLM fails."""
+    app = create_app()
+
+    # Simulate LLM complete outage / failure (e.g. XAiAPIError or network offline)
+    with patch(
+        "app.agents.patient_profile_agent.GeminiLLMService.generate_json",
+        AsyncMock(side_effect=RuntimeError("xKiro / LLM offline")),
+    ), patch(
+        "app.llm.xai_service.XAiLLMService.generate_json",
+        AsyncMock(side_effect=RuntimeError("xKiro / LLM offline")),
+    ):
+        with TestClient(app) as client:
+            with open(synthetic_patient_pdf, "rb") as pdf_bytes:
+                files = {"file": ("synthetic_patient.pdf", pdf_bytes, "application/pdf")}
+                response = client.post("/api/v1/patients/extract-document", files=files)
+
+            assert response.status_code == 200, response.text
+            data = response.json()
+            assert data["patient_profile_id"] == "PT-10023"
+            assert data["profile"]["demographics"]["age"] == 58
+            assert data["profile"]["demographics"]["sex"] == "female"
+            assert data["profile"]["demographics"]["pregnancy_status"] == "not_pregnant"
+            assert data["profile"]["clinical_status"]["active_serious_infection"] is False
+            assert data["profile"]["clinical_status"]["uncontrolled_cardiac_disease"] is False
+            assert data["profile"]["labs"]["egfr"]["value"] == 64.0
+            assert data["profile"]["labs"]["anc"]["value"] == 2100.0
+            assert data["profile"]["labs"]["platelets"]["value"] == 195000.0
+            assert data["sourceType"] == "Uploaded PDF"
+            assert len(data["profile"]["lab_values"]) >= 3
+
+
+def test_api_extract_patient_document_json_file_upload():
+    """Test POST /api/v1/patients/extract-document with a .json file upload."""
+    app = create_app()
+    with TestClient(app) as client:
+        json_content = b'{"patient_profile_id": "PT-JSON-FILE", "demographics": {"age": 62, "sex": "male"}, "labs": {"egfr": 75.5}}'
+        files = {"file": ("patient_record.json", json_content, "application/json")}
+        response = client.post("/api/v1/patients/extract-document", files=files)
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["patient_profile_id"] == "PT-JSON-FILE"
+        assert data["profile"]["demographics"]["age"] == 62
+        assert data["profile"]["labs"]["egfr"]["value"] == 75.5
+        assert data["sourceType"] == "Uploaded JSON"
+        assert data["sourceDocument"] == "patient_record.json"
+
+
+def test_api_extract_patient_document_json_body():
+    """Test POST /api/v1/patients/extract-document with raw JSON body."""
+    app = create_app()
+    with TestClient(app) as client:
+        payload = {
+            "patient_profile_id": "PT-BODY-01",
+            "demographics": {"age": 45, "sex": "female"},
+            "labs": {"platelets": 250000},
+        }
+        response = client.post("/api/v1/patients/extract-document", json=payload)
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["patient_profile_id"] == "PT-BODY-01"
+        assert data["profile"]["demographics"]["age"] == 45
+
+
+def test_api_patient_save_and_list():
+    """Test POST /api/v1/patients/profile and GET /api/v1/patients."""
+    app = create_app()
+    with TestClient(app) as client:
+        profile = {
+            "patient_profile_id": "PT-PERSIST-01",
+            "demographics": {"age": 55, "sex": "male"},
+        }
+        save_resp = client.post("/api/v1/patients/profile", json=profile)
+        assert save_resp.status_code == 200
+        saved_data = save_resp.json()
+        assert saved_data["patient_profile_id"] == "PT-PERSIST-01"
+
+        # List patients
+        list_resp = client.get("/api/v1/patients")
+        assert list_resp.status_code == 200
+        patients = list_resp.json()
+        assert any(p.get("patient_profile_id") == "PT-PERSIST-01" for p in patients)
+
+        # Get specific patient
+        get_resp = client.get("/api/v1/patients/PT-PERSIST-01")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["patient_profile_id"] == "PT-PERSIST-01"
+

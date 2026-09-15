@@ -115,6 +115,11 @@ class PatientProfile(BaseModel):
     allergies: List[AllergyItem] = Field(default_factory=list)
     medications: List[MedicationItem] = Field(default_factory=list)
     treatment_history: TreatmentHistory = Field(default_factory=TreatmentHistory)
+    lab_values: List[Dict[str, Any]] = Field(default_factory=list, description="Normalized lab items list for UI consumption")
+    medical_history: List[Dict[str, Any]] = Field(default_factory=list, description="Medical history items list")
+    missing_information: List[Dict[str, Any]] = Field(default_factory=list, description="Structured missing info objects for UI consumption")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Metadata dictionary")
+    clinical_notes_raw: Optional[str] = Field(default=None, description="Raw clinical notes text if any")
 
 
 class ExtractedPatientResult(BaseModel):
@@ -126,3 +131,7 @@ class ExtractedPatientResult(BaseModel):
     evidence: List[PatientEvidence] = Field(default_factory=list, description="Auditable provenance records")
     source_type: str = Field(default="patient_json", description="Origin: 'patient_json' | 'patient_pdf' | 'patient_input'")
     source_document: Optional[str] = Field(default=None, description="Filename of source document")
+    extractedFields: List[str] = Field(default_factory=list, description="List of extracted field names for frontend compatibility")
+    extracted_fields: List[str] = Field(default_factory=list, description="Snake_case list of extracted field names")
+    sourceDocument: Optional[str] = Field(default=None, description="CamelCase alias for source document")
+    sourceType: Optional[str] = Field(default=None, description="Display source type ('Uploaded PDF' | 'Uploaded JSON')")

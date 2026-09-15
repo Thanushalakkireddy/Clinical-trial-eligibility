@@ -397,13 +397,16 @@ class PatientProfileAgent:
 
         missing_fields = self._compute_missing_information(profile)
 
-        return ExtractedPatientResult(
+        result = ExtractedPatientResult(
             patient_profile_id=patient_id,
             profile=profile,
             missing_information=missing_fields,
             evidence=evidence_list,
             source_type="patient_json",
             source_document=source_document,
+        )
+        return self._populate_compatibility_fields(
+            result, source_document=source_document, source_type="patient_json"
         )
 
     def _extract_labs(
@@ -657,20 +660,27 @@ Respond strictly with a JSON object conforming to this schema:
   ]
 }}
 """
-        raw_json = await self.llm_service.generate_json(
-            prompt=prompt.strip(),
-            system_instruction=PATIENT_NARRATIVE_SYSTEM_INSTRUCTION,
-            temperature=0.0,
-        )
-
-        if not isinstance(raw_json, dict):
-            raise ValueError("LLM returned non-dictionary format for patient extraction.")
+        try:
+            raw_json = await self.llm_service.generate_json(
+                prompt=prompt.strip(),
+                system_instruction=PATIENT_NARRATIVE_SYSTEM_INSTRUCTION,
+                temperature=0.0,
+            )
+            if not isinstance(raw_json, dict):
+                raise ValueError("LLM returned non-dictionary format for patient extraction.")
+        except Exception as err:
+            logger.warning(
+                "Patient LLM extraction failed (%s: %s), falling back to deterministic extraction...",
+                type(err).__name__,
+                err,
+            )
+            raw_json = self._extract_patient_from_pdf_deterministic(pdf_doc, assigned_id)
 
         # Process through deterministic pipeline to normalize models and enforce missing info logic
         result = self.process_json(raw_json, source_document=pdf_doc.filename)
         result.source_type = "patient_pdf"
 
-        # Incorporate page evidence from LLM extraction
+        # Incorporate page evidence from extraction
         page_evidences = raw_json.get("page_evidence") or []
         for pe in page_evidences:
             if isinstance(pe, dict) and pe.get("field") and pe.get("value") is not None:
@@ -697,4 +707,327 @@ Respond strictly with a JSON object conforming to this schema:
                         )
                     )
 
+        return self._populate_compatibility_fields(
+            result, source_document=pdf_doc.filename, source_type="patient_pdf"
+        )
+
+    def _populate_compatibility_fields(
+        self,
+        result: ExtractedPatientResult,
+        source_document: Optional[str] = None,
+        source_type: str = "patient_json",
+    ) -> ExtractedPatientResult:
+        """Populate UI compatibility fields (lab_values, missing_information objects, extractedFields)."""
+        extracted_fields: List[str] = []
+        if result.patient_profile_id and not result.patient_profile_id.startswith("PAT-"):
+            extracted_fields.append("patient_id")
+            extracted_fields.append("patient_profile_id")
+
+        demo = result.profile.demographics
+        if demo.age is not None:
+            extracted_fields.append("age")
+            extracted_fields.append("demographics.age")
+        if demo.sex is not None and demo.sex.value != "unknown":
+            extracted_fields.append("sex")
+            extracted_fields.append("demographics.sex")
+        if demo.pregnancy_status is not None and demo.pregnancy_status.value != "unknown":
+            extracted_fields.append("pregnancy_status")
+            extracted_fields.append("demographics.pregnancy_status")
+        if demo.breastfeeding_status is not None:
+            extracted_fields.append("breastfeeding_status")
+            extracted_fields.append("demographics.breastfeeding_status")
+        if demo.height_cm is not None:
+            extracted_fields.append("height")
+            extracted_fields.append("demographics.height_cm")
+        if demo.weight_kg is not None:
+            extracted_fields.append("weight")
+            extracted_fields.append("demographics.weight_kg")
+
+        clin = result.profile.clinical_status
+        if clin.ecog_performance_status is not None:
+            extracted_fields.append("ecog_performance_status")
+            extracted_fields.append("clinical_status.ecog_performance_status")
+        if clin.active_serious_infection is not None:
+            extracted_fields.append("active_serious_infection")
+            extracted_fields.append("clinical_status.active_serious_infection")
+        if clin.uncontrolled_cardiac_disease is not None:
+            extracted_fields.append("uncontrolled_cardiac_disease")
+            extracted_fields.append("clinical_status.uncontrolled_cardiac_disease")
+
+        tx = result.profile.treatment_history
+        if tx.recent_systemic_anticancer_therapy is not None:
+            extracted_fields.append("recent_systemic_anticancer_therapy")
+            extracted_fields.append("treatment_history.recent_systemic_anticancer_therapy")
+
+        # 2. Build lab_values array for UI consumption
+        lab_values: List[Dict[str, Any]] = []
+        labs = result.profile.labs
+        lab_mapping = [
+            ("egfr", "eGFR", "mL/min/1.73m²"),
+            ("anc", "Absolute Neutrophil Count (ANC)", "cells/mcL"),
+            ("platelets", "Platelet Count", "cells/mcL"),
+            ("hemoglobin", "Hemoglobin", "g/dL"),
+            ("ast", "AST", "U/L"),
+            ("alt", "ALT", "U/L"),
+            ("bilirubin", "Total Bilirubin", "mg/dL"),
+        ]
+        for attr, display_name, def_unit in lab_mapping:
+            lv = getattr(labs, attr, None)
+            if lv is not None and lv.value is not None:
+                extracted_fields.append(attr)
+                extracted_fields.append(f"labs.{attr}")
+                lab_values.append({
+                    "name": display_name,
+                    "value": lv.value,
+                    "unit": lv.unit or def_unit,
+                    "reference_range": lv.reference_range or None,
+                })
+        for k, v in labs.other_labs.items():
+            if v is not None and v.value is not None:
+                extracted_fields.append(f"labs.{k}")
+                lab_values.append({
+                    "name": k.replace("_", " ").title(),
+                    "value": v.value,
+                    "unit": v.unit or "",
+                    "reference_range": v.reference_range or None,
+                })
+        result.profile.lab_values = lab_values
+
+        # 3. Build missing_information structured objects for UI list
+        missing_objs: List[Dict[str, Any]] = []
+        for mf in result.missing_information:
+            parts = mf.split(".", 1)
+            cat = parts[0] if len(parts) > 1 else "general"
+            field_name = parts[1] if len(parts) > 1 else parts[0]
+            missing_objs.append({
+                "field": field_name,
+                "status": "missing",
+                "category": cat,
+                "description": f"{field_name.replace('_', ' ').capitalize()} is not documented in the medical record.",
+            })
+        result.profile.missing_information = missing_objs
+
+        # 4. Top-level fields
+        result.extractedFields = extracted_fields
+        result.extracted_fields = extracted_fields
+        result.sourceDocument = source_document or result.source_document
+        is_pdf = "pdf" in (source_type or "").lower() or (source_document and source_document.lower().endswith(".pdf"))
+        result.sourceType = "Uploaded PDF" if is_pdf else "Uploaded JSON"
+        result.source_type = "patient_pdf" if is_pdf else "patient_json"
+        result.source_document = result.sourceDocument
+
+        # 5. Profile metadata
+        result.profile.metadata = {
+            "source": result.sourceType,
+            "source_document": result.sourceDocument,
+            "extracted_fields": extracted_fields,
+            "ecog_score": clin.ecog_performance_status,
+            "active_serious_infection": clin.active_serious_infection,
+            "uncontrolled_cardiac_disease": clin.uncontrolled_cardiac_disease,
+            "recent_systemic_anticancer_therapy": tx.recent_systemic_anticancer_therapy,
+        }
         return result
+
+    def _extract_patient_from_pdf_deterministic(
+        self,
+        pdf_doc: PDFDocument,
+        patient_profile_id: str,
+    ) -> Dict[str, Any]:
+        """Deterministic regex-based extraction from PDF text pages when LLM is unavailable."""
+        data: Dict[str, Any] = {
+            "patient_profile_id": patient_profile_id,
+            "demographics": {},
+            "clinical_status": {},
+            "labs": {},
+            "vital_signs": {},
+            "conditions": [],
+            "medications": [],
+            "allergies": [],
+            "treatment_history": {},
+            "page_evidence": [],
+        }
+
+        for page in pdf_doc.pages:
+            text = page.text or ""
+            page_num = page.page_number
+            for line in text.splitlines():
+                line_str = line.strip()
+                if not line_str:
+                    continue
+
+                # Patient ID
+                m_id = re.search(r"(?:patient\s*(?:id|identifier)|pt[-_\s]*id)\s*[:#-]?\s*([A-Za-z0-9_-]+)", line_str, re.I)
+                if m_id and not data.get("_id_extracted"):
+                    data["patient_profile_id"] = m_id.group(1).strip()
+                    data["_id_extracted"] = True
+                    data["page_evidence"].append({
+                        "field": "patient_profile_id",
+                        "value": m_id.group(1).strip(),
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Age
+                m_age = re.search(r"(?:age|years\s*old)\s*[:=]?\s*(\d{1,3})|(\d{1,3})\s*(?:years?\s*old|y/?o)", line_str, re.I)
+                if m_age and "age" not in data["demographics"]:
+                    val = int(m_age.group(1) or m_age.group(2))
+                    data["demographics"]["age"] = val
+                    data["page_evidence"].append({
+                        "field": "demographics.age",
+                        "value": val,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Sex
+                m_sex = re.search(r"\b(female|male|woman|man)\b", line_str, re.I)
+                if m_sex and "sex" not in data["demographics"]:
+                    s = "female" if "fem" in m_sex.group(1).lower() or "woman" in m_sex.group(1).lower() else "male"
+                    data["demographics"]["sex"] = s
+                    data["page_evidence"].append({
+                        "field": "demographics.sex",
+                        "value": s,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Pregnancy
+                if re.search(r"\bnot\s*pregnant\b|\bnegative\s*pregnancy\b|\bpregnancy\s*[:=]?\s*(?:no|negative|not\s*pregnant)\b", line_str, re.I):
+                    data["demographics"]["pregnancy_status"] = "not_pregnant"
+                    data["page_evidence"].append({
+                        "field": "demographics.pregnancy_status",
+                        "value": "not_pregnant",
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+                elif re.search(r"\bpregnant\b", line_str, re.I) and "not pregnant" not in line_str.lower():
+                    data["demographics"]["pregnancy_status"] = "pregnant"
+                    data["page_evidence"].append({
+                        "field": "demographics.pregnancy_status",
+                        "value": "pregnant",
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Breastfeeding
+                if re.search(r"breastfeeding\s*[:=]?\s*(?:no|negative|false|denied|denies)|not\s*breastfeeding", line_str, re.I):
+                    data["demographics"]["breastfeeding_status"] = False
+                    data["page_evidence"].append({
+                        "field": "demographics.breastfeeding_status",
+                        "value": False,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # ECOG
+                m_ecog = re.search(r"ecog(?:\s*performance\s*status)?\s*[:=]?\s*(\d)", line_str, re.I)
+                if m_ecog and "ecog_performance_status" not in data["clinical_status"]:
+                    data["clinical_status"]["ecog_performance_status"] = int(m_ecog.group(1))
+                    data["page_evidence"].append({
+                        "field": "clinical_status.ecog_performance_status",
+                        "value": int(m_ecog.group(1)),
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Active serious infection
+                if re.search(r"(?:no\s*active\s*(?:serious\s*)?infection|active\s*(?:serious\s*)?infection\s*[:=]?\s*(?:no|none|negative|false|denied|denies))", line_str, re.I):
+                    data["clinical_status"]["active_serious_infection"] = False
+                    data["page_evidence"].append({
+                        "field": "clinical_status.active_serious_infection",
+                        "value": False,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Cardiac disease
+                if re.search(r"(?:no\s*uncontrolled\s*cardiac(?:\s*disease)?|uncontrolled\s*cardiac(?:\s*disease)?\s*[:=]?\s*(?:no|none|negative|false|denied|denies))", line_str, re.I):
+                    data["clinical_status"]["uncontrolled_cardiac_disease"] = False
+                    data["page_evidence"].append({
+                        "field": "clinical_status.uncontrolled_cardiac_disease",
+                        "value": False,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # eGFR
+                m_egfr = re.search(r"(?:estimated\s*glomerular\s*filtration\s*rate(?:\s*\(egfr\))?|egfr)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z0-9/²\^]+)?", line_str, re.I)
+                if m_egfr and "egfr" not in data["labs"]:
+                    val = float(m_egfr.group(1))
+                    u = m_egfr.group(2) or "mL/min/1.73m²"
+                    data["labs"]["egfr"] = {"value": val, "unit": u}
+                    data["page_evidence"].append({
+                        "field": "labs.egfr",
+                        "value": val,
+                        "unit": u,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # ANC
+                m_anc = re.search(r"(?:absolute\s*neutrophil\s*count(?:\s*\(anc\))?|anc)\s*[:=]?\s*([0-9,]+(?:\.[0-9]+)?)\s*([a-zA-Z0-9/]+)?", line_str, re.I)
+                if m_anc and "anc" not in data["labs"]:
+                    val = float(m_anc.group(1).replace(",", ""))
+                    u = m_anc.group(2) or "cells/mcL"
+                    data["labs"]["anc"] = {"value": val, "unit": u}
+                    data["page_evidence"].append({
+                        "field": "labs.anc",
+                        "value": val,
+                        "unit": u,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Platelets
+                m_plt = re.search(r"(?:platelet(?:s|\s*count)?(?:\s*\(plt\))?|plt)\s*[:=]?\s*([0-9,]+(?:\.[0-9]+)?)\s*([a-zA-Z0-9/]+)?", line_str, re.I)
+                if m_plt and "platelets" not in data["labs"]:
+                    val = float(m_plt.group(1).replace(",", ""))
+                    u = m_plt.group(2) or "cells/mcL"
+                    data["labs"]["platelets"] = {"value": val, "unit": u}
+                    data["page_evidence"].append({
+                        "field": "labs.platelets",
+                        "value": val,
+                        "unit": u,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Blood pressure
+                m_bp = re.search(r"(?:bp|blood\s*pressure)\s*[:=]?\s*(\d{2,3})\s*/\s*(\d{2,3})\s*(mmHg)?", line_str, re.I)
+                if m_bp and "blood_pressure" not in data["vital_signs"]:
+                    sys = int(m_bp.group(1))
+                    dia = int(m_bp.group(2))
+                    data["vital_signs"]["blood_pressure"] = {"systolic": sys, "diastolic": dia, "unit": "mmHg"}
+                    data["page_evidence"].append({
+                        "field": "vital_signs.blood_pressure",
+                        "value": f"{sys}/{dia}",
+                        "unit": "mmHg",
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Heart rate
+                m_hr = re.search(r"(?:hr|heart\s*rate|pulse)\s*[:=]?\s*(\d{2,3})\s*(?:bpm)?", line_str, re.I)
+                if m_hr and "heart_rate" not in data["vital_signs"]:
+                    hr_val = int(m_hr.group(1))
+                    data["vital_signs"]["heart_rate"] = hr_val
+                    data["page_evidence"].append({
+                        "field": "vital_signs.heart_rate",
+                        "value": hr_val,
+                        "unit": "bpm",
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+                # Recent anticancer therapy
+                if re.search(r"(?:no\s*recent\s*systemic\s*anticancer\s*therapy|systemic\s*anticancer\s*therapy\s*[:=]?\s*(?:no|none|negative|false|denied|denies))", line_str, re.I):
+                    data["treatment_history"]["recent_systemic_anticancer_therapy"] = False
+                    data["page_evidence"].append({
+                        "field": "treatment_history.recent_systemic_anticancer_therapy",
+                        "value": False,
+                        "source_page": page_num,
+                        "source_excerpt": line_str,
+                    })
+
+        data.pop("_id_extracted", None)
+        return data

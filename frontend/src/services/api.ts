@@ -677,7 +677,8 @@ export async function getTrials(): Promise<ProtocolExtractionResponse[]> {
  * Fetch all available patient profiles from the data store.
  */
 export async function getPatients(): Promise<import('../types').StructuredPatientProfile[]> {
-  const url = API_BASE_URL ? `${API_BASE_URL}/api/v1/patients` : '/api/v1/patients';
+  const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
+  const url = effectiveBaseUrl ? `${effectiveBaseUrl}/api/v1/patients` : '/api/v1/patients';
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -698,8 +699,9 @@ export async function getPatients(): Promise<import('../types').StructuredPatien
 export async function getPatientProfile(
   patientProfileId: string
 ): Promise<import('../types').StructuredPatientProfile> {
-  const url = API_BASE_URL
-    ? `${API_BASE_URL}/api/v1/patients/${patientProfileId}`
+  const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
+  const url = effectiveBaseUrl
+    ? `${effectiveBaseUrl}/api/v1/patients/${patientProfileId}`
     : `/api/v1/patients/${patientProfileId}`;
   const response = await fetch(url, {
     method: 'GET',
@@ -721,7 +723,8 @@ export async function getPatientProfile(
 export async function createPatientProfile(
   data: any
 ): Promise<import('../types').StructuredPatientProfile> {
-  const url = API_BASE_URL ? `${API_BASE_URL}/api/v1/patients/profile` : '/api/v1/patients/profile';
+  const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
+  const url = effectiveBaseUrl ? `${effectiveBaseUrl}/api/v1/patients/profile` : '/api/v1/patients/profile';
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -762,8 +765,9 @@ export async function extractPatientDocument(file: File): Promise<PatientExtract
     throw new Error('Please upload a PDF or JSON patient record.');
   }
 
-  const url = API_BASE_URL
-    ? `${API_BASE_URL}/api/v1/patients/extract-document`
+  const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
+  const url = effectiveBaseUrl
+    ? `${effectiveBaseUrl}/api/v1/patients/extract-document`
     : '/api/v1/patients/extract-document';
 
   const formData = new FormData();
@@ -785,7 +789,26 @@ export async function extractPatientDocument(file: File): Promise<PatientExtract
     throw new Error(errorDetail);
   }
 
-  return response.json();
+  const data = await response.json();
+
+  const profile = data.profile || {};
+  const extractedFields: string[] = Array.isArray(data.extractedFields)
+    ? data.extractedFields
+    : Array.isArray(data.extracted_fields)
+    ? data.extracted_fields
+    : [];
+
+  const sourceDocument = data.sourceDocument || data.source_document || file.name;
+  const sourceType =
+    data.sourceType ||
+    (data.source_type === 'patient_pdf' || ext === '.pdf' ? 'Uploaded PDF' : 'Uploaded JSON');
+
+  return {
+    profile,
+    extractedFields,
+    sourceDocument,
+    sourceType,
+  };
 }
 
 
