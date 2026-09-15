@@ -17,7 +17,7 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from app.llm import LLMServiceType, get_llm_service
+from app.llm import GeminiLLMService, LLMServiceType, get_llm_service
 from app.pdf.processor import PDFDocument
 from app.schemas.patient import (
     AllergyItem,

@@ -26,6 +26,7 @@ from app.runtime_config import (
 def _settings(**overrides) -> Settings:
     base = {
         "ENVIRONMENT": "production",
+        "LLM_PROVIDER": "gemini",
         "GEMINI_API_KEY": "",
         "DATABASE_URL": "",
     }
@@ -145,6 +146,7 @@ def test_create_app_fails_fast_when_strict_config_is_missing(monkeypatch):
     from app.config import settings
 
     monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "llm_provider", "gemini")
     monkeypatch.setattr(settings, "gemini_api_key", "")
     monkeypatch.setattr(settings, "database_url", None)
 
@@ -158,6 +160,7 @@ def test_create_app_starts_when_strict_config_is_valid(monkeypatch):
     from app.config import settings
 
     monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "llm_provider", "gemini")
     monkeypatch.setattr(settings, "gemini_api_key", "dummy-key-for-test")
     monkeypatch.setattr(settings, "database_url", "postgresql+asyncpg://u:p@localhost:5432/db")
 
@@ -166,6 +169,41 @@ def test_create_app_starts_when_strict_config_is_valid(monkeypatch):
     app = create_app()
     assert app is not None
     assert app.title == "clinical-trial-eligibility-api"
+
+
+def test_xai_missing_produces_clear_error_in_production():
+    cfg = Settings(
+        ENVIRONMENT="production",
+        LLM_PROVIDER="xai",
+        XAI_API_KEY="",
+        DATABASE_URL="postgresql+asyncpg://u:p@localhost:5432/db",
+    )
+    problems = validate_runtime_config(cfg)
+    assert len(problems) == 1
+    assert "XAI_API_KEY is not configured" in problems[0]
+    assert "GEMINI_API_KEY" not in problems[0]
+
+
+def test_xai_provider_does_not_require_gemini_key():
+    cfg = Settings(
+        ENVIRONMENT="production",
+        LLM_PROVIDER="xai",
+        XAI_API_KEY="test-xai-key",
+        DATABASE_URL="postgresql+asyncpg://u:p@localhost:5432/db",
+    )
+    problems = validate_runtime_config(cfg)
+    assert problems == []
+
+
+def test_gemini_provider_does_not_require_xai_key():
+    cfg = Settings(
+        ENVIRONMENT="production",
+        LLM_PROVIDER="gemini",
+        GEMINI_API_KEY="test-gemini-key",
+        DATABASE_URL="postgresql+asyncpg://u:p@localhost:5432/db",
+    )
+    problems = validate_runtime_config(cfg)
+    assert problems == []
 
 
 def test_create_app_succeeds_in_test_environment():

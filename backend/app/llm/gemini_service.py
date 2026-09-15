@@ -16,20 +16,40 @@ from google.genai import types
 from google.genai.errors import APIError
 
 from app.config import Settings, settings
+from app.llm.base import (
+    LLMConfigurationError,
+    LLMProvider,
+    LLMProviderError,
+    LLMRateLimitError,
+    LLMResponseParsingError,
+    LLMTimeoutError,
+)
 from app.timing import log_stage, start_timer
 
 logger = logging.getLogger(__name__)
 
 
-class GeminiConfigurationError(Exception):
+class GeminiConfigurationError(LLMConfigurationError):
     """Raised when Gemini client configuration is invalid or missing."""
 
 
-class GeminiAPIError(Exception):
+class GeminiAPIError(LLMProviderError):
     """Raised when Gemini API request fails."""
 
 
-class GeminiLLMService:
+class GeminiTimeoutError(LLMTimeoutError, GeminiAPIError):
+    """Raised when Gemini request times out."""
+
+
+class GeminiRateLimitError(LLMRateLimitError, GeminiAPIError):
+    """Raised when Gemini rate limit is exceeded."""
+
+
+class GeminiResponseParsingError(LLMResponseParsingError, GeminiAPIError):
+    """Raised when parsing Gemini response fails."""
+
+
+class GeminiLLMService(LLMProvider):
     """Reusable service for communicating with Google Gemini models.
     
     Adheres strictly to zero credential leaking, robust error wrapping,

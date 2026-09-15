@@ -365,7 +365,8 @@ def test_api_extract_patient_profile_pdf(synthetic_patient_pdf: Path):
         "labs": {"egfr": {"value": 64.0, "unit": "mL/min/1.73m²"}},
     }
 
-    with patch("app.agents.patient_profile_agent.GeminiLLMService.generate_json", AsyncMock(return_value=mock_llm_json)):
+    with patch("app.agents.patient_profile_agent.GeminiLLMService.generate_json", AsyncMock(return_value=mock_llm_json)), \
+         patch("app.llm.xai_service.XAiLLMService.generate_json", AsyncMock(return_value=mock_llm_json)):
         with TestClient(app) as client:
             with open(synthetic_patient_pdf, "rb") as pdf_bytes:
                 files = {"file": ("patient_record.pdf", pdf_bytes, "application/pdf")}

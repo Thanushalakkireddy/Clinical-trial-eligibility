@@ -231,7 +231,8 @@ def test_api_extract_protocol_endpoint(synthetic_two_page_pdf: Path):
         "other_requirements": [],
     }
 
-    with patch("app.agents.protocol_extraction_agent.GeminiLLMService.generate_json", AsyncMock(return_value=mock_llm_response)):
+    with patch("app.agents.protocol_extraction_agent.GeminiLLMService.generate_json", AsyncMock(return_value=mock_llm_response)), \
+         patch("app.llm.xai_service.XAiLLMService.generate_json", AsyncMock(return_value=mock_llm_response)):
         with TestClient(app) as client:
             with open(synthetic_two_page_pdf, "rb") as pdf_bytes:
                 files = {"file": ("protocol.pdf", pdf_bytes, "application/pdf")}

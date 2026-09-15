@@ -19,6 +19,9 @@ export interface PDFUploadResponse {
   filename: string;
   status: string;
   file_size_bytes?: number;
+  processing_status?: string;
+  criteria_count?: number;
+  error_message?: string | null;
 }
 
 export interface ExtractedCriterion {
@@ -31,18 +34,24 @@ export interface ExtractedCriterion {
   structured_rule?: string;
   raw_text?: string;
   page_number?: number;
+  section?: string;
+  source_excerpt?: string | null;
 }
 
 export interface ProtocolExtractionResponse {
   trial_id: string;
   trial_title: string;
-  trial_identifier?: string;
+  title?: string;
+  protocol_id?: string;
+  trial_identifier?: string | null;
   inclusion_criteria: ExtractedCriterion[];
   exclusion_criteria: ExtractedCriterion[];
   other_requirements: string[];
   processing_status: string;
   total_pages_analyzed?: number;
-  error_message?: string;
+  source_document?: string;
+  extraction_metadata?: any;
+  error_message?: string | null;
 }
 
 export interface ProtocolCriterion {

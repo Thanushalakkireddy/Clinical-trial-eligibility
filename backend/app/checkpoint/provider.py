@@ -62,8 +62,16 @@ def checkpoint_is_available() -> bool:
 def _sqlite_path(url: str) -> str:
     """Extract a SQLite file path (or ``:memory:``) from a SQLAlchemy-style URL."""
     rest = url.split("://", 1)[1] if "://" in url else url
-    path = rest.lstrip("/")
-    return path or ":memory:"
+    if not rest or rest in (":memory:", "/:memory:", "//:memory:"):
+        return ":memory:"
+    if rest.startswith("//"):
+        return rest[1:]
+    if rest.startswith("/"):
+        # If followed by Windows drive letter like /C:/, strip leading slash
+        if len(rest) > 3 and rest[1].isalpha() and rest[2] == ":":
+            return rest[1:]
+        return rest[1:]
+    return rest
 
 
 async def _build_saver(url: str) -> BaseCheckpointSaver:

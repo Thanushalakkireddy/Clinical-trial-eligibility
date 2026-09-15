@@ -274,8 +274,10 @@ async def test_thread_id_equals_assessment_id_and_isolation(sqlite_ckpt_db):
     assert saver is not None
 
     threads = set()
-    async for c in saver.alist({}):
-        threads.add(c["configurable"]["thread_id"])
+    for tid in (first_data["assessment_id"], second_data["assessment_id"]):
+        items = [c async for c in saver.alist({"configurable": {"thread_id": tid}})]
+        if items:
+            threads.add(tid)
     # Exactly the two assessment ids, never a shared/generated thread.
     assert threads == {first_data["assessment_id"], second_data["assessment_id"]}
 

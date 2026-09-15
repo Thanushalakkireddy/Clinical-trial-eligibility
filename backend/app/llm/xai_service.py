@@ -14,20 +14,40 @@ from typing import Any
 import httpx
 
 from app.config import Settings, settings
+from app.llm.base import (
+    LLMConfigurationError,
+    LLMProvider,
+    LLMProviderError,
+    LLMRateLimitError,
+    LLMResponseParsingError,
+    LLMTimeoutError,
+)
 from app.timing import log_stage, start_timer
 
 logger = logging.getLogger(__name__)
 
 
-class XAiConfigurationError(Exception):
+class XAiConfigurationError(LLMConfigurationError):
     """Raised when xAI client configuration is invalid or missing."""
 
 
-class XAiAPIError(Exception):
+class XAiAPIError(LLMProviderError):
     """Raised when xAI API request fails."""
 
 
-class XAiLLMService:
+class XAiTimeoutError(LLMTimeoutError, XAiAPIError):
+    """Raised when xAI request times out."""
+
+
+class XAiRateLimitError(LLMRateLimitError, XAiAPIError):
+    """Raised when xAI rate limit is exceeded."""
+
+
+class XAiResponseParsingError(LLMResponseParsingError, XAiAPIError):
+    """Raised when parsing xAI response fails."""
+
+
+class XAiLLMService(LLMProvider):
     """Reusable service for communicating with xAI / Grok models.
 
     Adheres strictly to zero credential leaking, robust error wrapping,

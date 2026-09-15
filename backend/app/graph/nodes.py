@@ -205,9 +205,9 @@ class EligibilityWorkflowNodes:
                     res = await asyncio.wait_for(
                         asyncio.to_thread(
                             rag_service.retrieve,
-                            trial_id,
-                            "clinical eligibility criteria inclusion exclusion",
-                            50,
+                            trial_id=trial_id,
+                            query="clinical eligibility criteria inclusion exclusion",
+                            top_k=50,
                         ),
                         timeout=_rag_timeout(),
                     )

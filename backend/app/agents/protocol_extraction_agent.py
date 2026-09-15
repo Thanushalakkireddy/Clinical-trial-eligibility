@@ -12,7 +12,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from app.llm import LLMServiceType, get_llm_service
+from app.llm import GeminiLLMService, LLMServiceType, get_llm_service
 from app.pdf.processor import PDFDocument
 from app.schemas.protocol import (
     CriterionType,
