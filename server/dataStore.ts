@@ -88,7 +88,6 @@ export class DataStore {
     // 1. Scan patient profiles
     const patientDirs = [
       path.join(cwd, 'data', 'patients'),
-      path.join(cwd, 'backend', 'data', 'patients'),
     ];
 
     for (const pDir of patientDirs) {
@@ -118,7 +117,6 @@ export class DataStore {
     // 2. Scan protocols
     const protocolDirs = [
       path.join(cwd, 'storage', 'pdfs'),
-      path.join(cwd, 'backend', 'data', 'uploads'),
     ];
 
     for (const pDir of protocolDirs) {
@@ -160,7 +158,6 @@ export class DataStore {
     // 3. Scan chunk metadata for vector search
     const vectorDirs = [
       path.join(cwd, 'storage', 'faiss'),
-      path.join(cwd, 'backend', 'data', 'vector_store'),
     ];
 
     for (const vDir of vectorDirs) {

@@ -206,8 +206,64 @@ async function startServer() {
     res.json(trial);
   });
 
-  app.post('/api/v1/trials/:trialId/extract-protocol', (req, res) => {
+  app.post('/api/v1/trials/:trialId/extract-protocol', upload.single('file') as any, async (req, res) => {
     const trialId = req.params.trialId;
+    const file = req.file;
+
+    if (file) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const isPdf = ext === '.pdf' || file.mimetype === 'application/pdf';
+      if (!isPdf) {
+        return res.status(400).json({ detail: 'Only PDF files are permitted for protocol extraction.' });
+      }
+
+      const rawName = file.originalname;
+      const filename = path.basename(rawName).replace(/[^a-zA-Z0-9._-]/g, '_');
+      const fileSize = file.size;
+
+      let extractedTrial: ProtocolExtractionResponse;
+      try {
+        extractedTrial = await extractProtocolFromPdfBuffer(file.buffer, filename, trialId);
+      } catch (err: any) {
+        extractedTrial = {
+          trial_id: trialId,
+          trial_title: filename.replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
+          trial_identifier: null,
+          inclusion_criteria: [],
+          exclusion_criteria: [],
+          other_requirements: [],
+          processing_status: 'validation_failed',
+          total_pages_analyzed: 0,
+          error_message: `Extraction error: ${err?.message || 'Failed to parse protocol'}`,
+        };
+      }
+
+      dataStore.saveTrial(extractedTrial, filename, fileSize);
+
+      return res.json({
+        trial_id: trialId,
+        protocol_id: extractedTrial.trial_identifier || trialId,
+        title: extractedTrial.trial_title,
+        trial_title: extractedTrial.trial_title,
+        trial_identifier: extractedTrial.trial_identifier || trialId,
+        inclusion_criteria: extractedTrial.inclusion_criteria,
+        exclusion_criteria: extractedTrial.exclusion_criteria,
+        other_requirements: extractedTrial.other_requirements,
+        source_document: filename,
+        processing_status: extractedTrial.processing_status,
+        total_pages_analyzed: extractedTrial.total_pages_analyzed,
+        extraction_metadata: {
+          extracted_at: new Date().toISOString(),
+          total_pages: extractedTrial.total_pages_analyzed,
+          model: 'gemini-3.8-flash',
+          inclusion_count: extractedTrial.inclusion_criteria.length,
+          exclusion_count: extractedTrial.exclusion_criteria.length,
+          other_count: extractedTrial.other_requirements.length,
+        },
+        error_message: extractedTrial.error_message || null,
+      });
+    }
+
     const trial = dataStore.getTrial(trialId);
     if (!trial) {
       return res.status(404).json({ detail: `Trial with ID '${trialId}' not found.` });

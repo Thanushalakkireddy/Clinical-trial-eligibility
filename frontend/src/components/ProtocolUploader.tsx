@@ -13,8 +13,9 @@ import {
   Hash,
   Copy,
   Check,
+  Quote,
 } from 'lucide-react';
-import { uploadTrialPDF, extractProtocol, getTrials } from '../services/api';
+import { extractProtocol, getTrials, deriveTrialIdFromFilename } from '../services/api';
 import { ProtocolExtractionResponse, ExtractedCriterion } from '../types';
 
 interface ProtocolUploaderProps {
@@ -75,20 +76,21 @@ export const ProtocolUploader: React.FC<ProtocolUploaderProps> = ({ onTrialActiv
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
+    setExtracting(true);
     setErrorMessage(null);
     try {
-      const res = await uploadTrialPDF(file);
+      const derivedId = trialId || deriveTrialIdFromFilename(file.name);
+      const res = await extractProtocol(derivedId, file);
       setTrialId(res.trial_id);
-      setUploadedFilename(res.filename);
+      setUploadedFilename(file.name);
+      setExtractionResult(res);
       onTrialActive?.(res.trial_id);
-      // Reload trial list to include the newly uploaded trial
       loadTrials();
-      // Automatically trigger extraction after successful upload
-      await handleExtract(res.trial_id);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to upload protocol PDF.');
+      setErrorMessage(err.message || 'Failed to extract protocol criteria.');
     } finally {
       setUploading(false);
+      setExtracting(false);
     }
   };
 
@@ -96,8 +98,12 @@ export const ProtocolUploader: React.FC<ProtocolUploaderProps> = ({ onTrialActiv
     setExtracting(true);
     setErrorMessage(null);
     try {
-      const res = await extractProtocol(id);
+      const res = await extractProtocol(id, file || undefined);
       setExtractionResult(res);
+      if (res.trial_id) {
+        setTrialId(res.trial_id);
+        onTrialActive?.(res.trial_id);
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to extract protocol criteria.');
     } finally {
@@ -484,12 +490,17 @@ const CriterionCard: React.FC<CriterionCardProps> = ({ criterion }) => {
         {criterion.text}
       </p>
 
-      {criterion.trial_id && (
-        <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-400">
-          <span>Source Document: {criterion.trial_id.slice(0, 8)}...</span>
-          <span className="text-emerald-700 font-medium">Traceable Evidence</span>
+      {criterion.source_excerpt && (
+        <div className="mt-2 text-[11px] text-slate-600 bg-slate-50/80 p-2 rounded border border-slate-150 italic flex items-start gap-1.5">
+          <Quote className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
+          <span>&ldquo;{criterion.source_excerpt}&rdquo;</span>
         </div>
       )}
+
+      <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-400">
+        <span>Section: {criterion.section || (isInclusion ? 'Inclusion Criteria' : 'Exclusion Criteria')}</span>
+        <span className="text-emerald-700 font-medium">Traceable Evidence</span>
+      </div>
     </div>
   );
 };

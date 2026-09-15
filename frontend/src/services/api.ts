@@ -35,49 +35,171 @@ export async function getHealthStatus(): Promise<HealthResponse> {
 }
 
 /**
- * Upload a clinical trial PDF to the FastAPI backend.
+ * Helper to derive or sanitize a valid trial_id from a protocol filename.
+ * Must produce alphanumeric characters, dashes, and underscores (matching FastAPI clean_trial_id format).
  */
-export async function uploadTrialPDF(file: File): Promise<PDFUploadResponse> {
-  const url = API_BASE_URL ? `${API_BASE_URL}/api/v1/trials/upload` : '/api/v1/trials/upload';
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    let errorDetail = `Upload failed with status: ${response.status}`;
-    try {
-      const errJson = await response.json();
-      if (errJson.detail) errorDetail = errJson.detail;
-    } catch {
-      // ignore
-    }
-    throw new Error(errorDetail);
+export function deriveTrialIdFromFilename(filename: string): string {
+  // Check for common trial code patterns like SYN-CARDIO-001, SYN_CARDIO_001, NCT12345678, TRIAL-999
+  const patternMatch = filename.match(/\b([A-Za-z0-9]+[-_][A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)?)\b/);
+  if (patternMatch) {
+    return patternMatch[1].replace(/_/g, '-');
   }
-
-  return response.json();
+  const clean = filename
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-_]+|[-_]+$/g, '')
+    .slice(0, 32);
+  return clean || `trial-${Date.now().toString(36)}`;
 }
 
 /**
- * Run protocol text extraction and agent extraction on an uploaded trial.
+ * Adapts FastAPI ExtractedProtocol or Node ProtocolExtractionResponse into frontend ProtocolExtractionResponse.
+ * Ensures page provenance, criteria IDs, sections, excerpts, and titles are consistently mapped.
  */
-export async function extractProtocol(trialId: string): Promise<ProtocolExtractionResponse> {
-  const url = API_BASE_URL
-    ? `${API_BASE_URL}/api/v1/trials/${trialId}/extract-protocol`
-    : `/api/v1/trials/${trialId}/extract-protocol`;
+export function adaptProtocolResponse(data: any): ProtocolExtractionResponse {
+  if (!data) {
+    throw new Error('Empty protocol response received from backend');
+  }
+
+  const trialId = data.trial_id || data.protocol_id || 'UNKNOWN-TRIAL';
+  const trialTitle = data.title || data.trial_title || data.protocol_id || 'Clinical Trial Protocol';
+  const protocolId = data.protocol_id || data.trial_identifier || trialId;
+
+  const mapCriterion = (c: any, defaultType: 'inclusion' | 'exclusion'): import('../types').ExtractedCriterion => {
+    const rawType = (c.type || defaultType).toLowerCase();
+    const criterionType = rawType.includes('inc') ? 'inclusion' : rawType.includes('exc') ? 'exclusion' : defaultType;
+    const page = typeof c.source_page === 'number' ? c.source_page : (typeof c.page_number === 'number' ? c.page_number : 1);
+
+    return {
+      criterion_id: c.criterion_id || `${criterionType === 'inclusion' ? 'INC' : 'EXC'}-000`,
+      type: criterionType as 'inclusion' | 'exclusion',
+      text: c.text || c.raw_text || '',
+      source_page: page,
+      page_number: page,
+      section: c.section || `${criterionType === 'inclusion' ? 'Inclusion' : 'Exclusion'} Criteria`,
+      source_excerpt: c.source_excerpt || null,
+      trial_id: c.trial_id || trialId,
+      category: c.category || c.section || undefined,
+      structured_rule: c.structured_rule || undefined,
+    };
+  };
+
+  const inclusionCriteria = (data.inclusion_criteria || []).map((c: any) =>
+    mapCriterion(c, 'inclusion')
+  );
+  const exclusionCriteria = (data.exclusion_criteria || []).map((c: any) =>
+    mapCriterion(c, 'exclusion')
+  );
+
+  const otherRequirements = (data.other_requirements || []).map((item: any) => {
+    if (typeof item === 'string') return item;
+    if (item && typeof item === 'object' && item.text) return item.text;
+    return String(item);
+  });
+
+  const totalPages =
+    data.extraction_metadata?.total_pages ??
+    data.total_pages_analyzed ??
+    data.extraction_metadata?.page_count ??
+    undefined;
+
+  return {
+    trial_id: trialId,
+    trial_title: trialTitle,
+    title: trialTitle,
+    protocol_id: protocolId,
+    trial_identifier: protocolId,
+    inclusion_criteria: inclusionCriteria,
+    exclusion_criteria: exclusionCriteria,
+    other_requirements: otherRequirements,
+    processing_status:
+      data.processing_status ||
+      (inclusionCriteria.length > 0 || exclusionCriteria.length > 0 ? 'completed' : 'extracted'),
+    total_pages_analyzed: totalPages,
+    source_document: data.source_document,
+    extraction_metadata: data.extraction_metadata,
+    error_message: data.error_message,
+  };
+}
+
+/**
+ * Upload a clinical trial PDF to the authoritative FastAPI backend.
+ * Adapts to the consolidated POST /api/v1/trials/{trialId}/extract-protocol endpoint.
+ */
+export async function uploadTrialPDF(file: File, trialId?: string): Promise<PDFUploadResponse> {
+  const effectiveTrialId = trialId || deriveTrialIdFromFilename(file.name);
+  const res = await extractProtocol(effectiveTrialId, file);
+
+  return {
+    trial_id: res.trial_id,
+    filename: file.name,
+    status: res.processing_status || 'uploaded',
+    file_size_bytes: file.size,
+    processing_status: res.processing_status,
+    criteria_count: (res.inclusion_criteria?.length || 0) + (res.exclusion_criteria?.length || 0),
+    error_message: res.error_message,
+  };
+}
+
+/**
+ * Run protocol text extraction and agent extraction on a clinical trial protocol PDF.
+ * Authoritative FastAPI endpoint: POST /api/v1/trials/{trialId}/extract-protocol
+ * Handles multipart file upload directly to FastAPI.
+ */
+export async function extractProtocol(
+  trialId: string,
+  file?: File
+): Promise<ProtocolExtractionResponse> {
+  const cleanTrialId = trialId.replace(/[^a-zA-Z0-9_-]/g, '') || 'TRIAL-DEFAULT';
+  const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
+
+  if (file) {
+    const url = effectiveBaseUrl
+      ? `${effectiveBaseUrl}/api/v1/trials/${cleanTrialId}/extract-protocol`
+      : `/api/v1/trials/${cleanTrialId}/extract-protocol`;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorDetail = `Protocol extraction failed with status: ${response.status}`;
+      try {
+        const errJson = await response.json();
+        if (errJson.detail) {
+          errorDetail = typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail);
+        } else if (errJson.error_message) {
+          errorDetail = errJson.error_message;
+        }
+      } catch {
+        // ignore
+      }
+      throw new Error(errorDetail);
+    }
+
+    const rawData = await response.json();
+    return adaptProtocolResponse(rawData);
+  }
+
+  // If no file passed, attempt to fetch previously processed trial protocol
+  const url = effectiveBaseUrl
+    ? `${effectiveBaseUrl}/api/v1/trials/${cleanTrialId}`
+    : `/api/v1/trials/${cleanTrialId}`;
 
   const response = await fetch(url, {
-    method: 'POST',
+    method: 'GET',
     headers: {
       'Accept': 'application/json',
     },
   });
 
   if (!response.ok) {
-    let errorDetail = `Extraction failed with status: ${response.status}`;
+    let errorDetail = `Failed to fetch protocol for '${cleanTrialId}' with status: ${response.status}`;
     try {
       const errJson = await response.json();
       if (errJson.detail) errorDetail = errJson.detail;
@@ -87,16 +209,19 @@ export async function extractProtocol(trialId: string): Promise<ProtocolExtracti
     throw new Error(errorDetail);
   }
 
-  return response.json();
+  const rawData = await response.json();
+  return adaptProtocolResponse(rawData);
 }
 
 /**
  * Get previously extracted trial protocol.
  */
 export async function getTrialProtocol(trialId: string): Promise<ProtocolExtractionResponse> {
-  const url = API_BASE_URL
-    ? `${API_BASE_URL}/api/v1/trials/${trialId}`
-    : `/api/v1/trials/${trialId}`;
+  const cleanTrialId = trialId.replace(/[^a-zA-Z0-9_-]/g, '') || trialId;
+  const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
+  const url = effectiveBaseUrl
+    ? `${effectiveBaseUrl}/api/v1/trials/${cleanTrialId}`
+    : `/api/v1/trials/${cleanTrialId}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -109,7 +234,8 @@ export async function getTrialProtocol(trialId: string): Promise<ProtocolExtract
     throw new Error(`Failed to fetch trial protocol with status: ${response.status}`);
   }
 
-  return response.json();
+  const rawData = await response.json();
+  return adaptProtocolResponse(rawData);
 }
 
 /**
@@ -456,19 +582,29 @@ export async function getAssessmentDetail(
  * Fetch all available clinical trials from the data store.
  */
 export async function getTrials(): Promise<ProtocolExtractionResponse[]> {
-  const url = API_BASE_URL ? `${API_BASE_URL}/api/v1/trials` : '/api/v1/trials';
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-    },
-  });
+  const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
+  const url = effectiveBaseUrl ? `${effectiveBaseUrl}/api/v1/trials` : '/api/v1/trials';
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch trials with status: ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        return [];
+      }
+      throw new Error(`Failed to fetch trials with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data.map(adaptProtocolResponse) : [];
+  } catch (err) {
+    console.warn('Could not fetch trial list from backend:', err);
+    return [];
   }
-
-  return response.json();
 }
 
 /**
