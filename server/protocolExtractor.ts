@@ -124,7 +124,7 @@ export async function extractProtocolFromPdfBuffer(
 
   // Match exclusion block
   const exclusionSectionRegex =
-    /(?:exclusion\s+criteria|key\s+exclusion\s+criteria|exclusion\s+requirements)([\s\S]*?)(?:safety\s+assessments|study\s+procedures|statistical\s+analysis|discontinuation|withdrawal|references|$)/i;
+    /(?:exclusion\s+criteria|key\s+exclusion\s+criteria|exclusion\s+requirements)([\s\S]*?)(?:safety\s+assessments|study\s+procedures|required\s+screening|study\s+overview|investigations\s+and\s+assessments|statistical\s+analysis|discontinuation|withdrawal|references|study\s+treatment|endpoints|$)/i;
   const excSectionMatch = cleanText.match(exclusionSectionRegex);
 
   const parseCriteriaItems = (sectionText: string): string[] => {
@@ -132,9 +132,30 @@ export async function extractProtocolFromPdfBuffer(
     const lines = sectionText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
     let currentItem = '';
-    const itemStartRegex = /^(?:(?:\d+|[a-zA-Z])[\.\)]|\u2022|\-|\*|\[\d+\])\s*(.+)/;
+    const itemStartRegex = /^(?:(?:INC|EXC|OTHER)[-_]?\d+\s*[:\.\)]|\bCriterion\s*\d+\s*[:\.\)]|(?:\d+|[a-zA-Z])[\.\)]|\u2022|\-|\*|\[\d+\])\s*(.+)/i;
 
     for (const line of lines) {
+      if (/^--\s*\d+\s*of\s*\d+\s*--$/i.test(line)) {
+        continue;
+      }
+
+      // Check for inline split of multiple items
+      const inlineSplits = line.split(/(?=(?:INC|EXC|OTHER)[-_]?\d+\s*[:\.\)])/i).map(s => s.trim()).filter(Boolean);
+      if (inlineSplits.length > 1 && inlineSplits.some(s => /^(?:INC|EXC|OTHER)[-_]?\d+/i.test(s))) {
+        for (const chunk of inlineSplits) {
+          const match = chunk.match(itemStartRegex);
+          if (match) {
+            if (currentItem.length >= 10) {
+              items.push(currentItem.trim());
+            }
+            currentItem = match[1] || '';
+          } else if (currentItem) {
+            currentItem += ' ' + chunk;
+          }
+        }
+        continue;
+      }
+
       const match = line.match(itemStartRegex);
       if (match) {
         if (currentItem.length >= 10) {
@@ -142,7 +163,7 @@ export async function extractProtocolFromPdfBuffer(
         }
         currentItem = match[1] || '';
       } else if (currentItem) {
-        // Continuation of previous item if not a header
+        // Continuation of previous item if not a header or footer
         if (line.length > 0 && !/^(?:section|chapter|table|figure)\b/i.test(line)) {
           currentItem += ' ' + line;
         }

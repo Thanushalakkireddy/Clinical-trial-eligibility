@@ -17,7 +17,7 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from app.llm.gemini_service import GeminiLLMService
+from app.llm import LLMServiceType, get_llm_service
 from app.pdf.processor import PDFDocument
 from app.schemas.patient import (
     AllergyItem,
@@ -116,8 +116,8 @@ def _safe_bool(val: Any) -> Optional[bool]:
 class PatientProfileAgent:
     """Agent that extracts and normalizes patient medical records."""
 
-    def __init__(self, llm_service: Optional[GeminiLLMService] = None) -> None:
-        self.llm_service = llm_service or GeminiLLMService()
+    def __init__(self, llm_service: Optional[LLMServiceType] = None) -> None:
+        self.llm_service = llm_service or get_llm_service()
 
     def process_json(
         self,

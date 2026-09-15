@@ -36,9 +36,24 @@ def strict_validation_enabled(cfg: Settings) -> bool:
     return (cfg.environment or "").strip().lower() != "test"
 
 
+def xai_is_configured(cfg: Settings) -> bool:
+    """Whether a non-empty xAI API key is configured (boolean only)."""
+    return bool((cfg.xai_api_key or "").strip())
+
+
 def gemini_is_configured(cfg: Settings) -> bool:
     """Whether a non-empty Gemini API key is configured (boolean only)."""
     return bool((cfg.gemini_api_key or "").strip())
+
+
+def llm_is_configured(cfg: Settings) -> bool:
+    """Whether the configured LLM provider has its API key configured."""
+    provider = (cfg.llm_provider or "xai").strip().lower()
+    if provider == "xai":
+        return xai_is_configured(cfg)
+    elif provider == "gemini":
+        return gemini_is_configured(cfg)
+    return xai_is_configured(cfg) or gemini_is_configured(cfg)
 
 
 def database_is_configured(cfg: Settings) -> bool:
@@ -61,11 +76,25 @@ def validate_runtime_config(cfg: Optional[Settings] = None) -> List[str]:
     c = cfg or global_settings
     problems: List[str] = []
 
-    if not gemini_is_configured(c):
-        problems.append(
-            "GEMINI_API_KEY is not configured. Set GEMINI_API_KEY=<Gemini API key> "
-            "in your environment or .env before starting the application."
-        )
+    provider = (c.llm_provider or "xai").strip().lower()
+    if provider == "xai":
+        if not xai_is_configured(c):
+            problems.append(
+                "XAI_API_KEY is not configured. Set XAI_API_KEY=<xAI API key> "
+                "in your environment or .env before starting the application."
+            )
+    elif provider == "gemini":
+        if not gemini_is_configured(c):
+            problems.append(
+                "GEMINI_API_KEY is not configured. Set GEMINI_API_KEY=<Gemini API key> "
+                "in your environment or .env before starting the application."
+            )
+    else:
+        if not llm_is_configured(c):
+            problems.append(
+                f"LLM API key is not configured for provider '{c.llm_provider}'. "
+                "Set XAI_API_KEY or GEMINI_API_KEY in your environment."
+            )
 
     if not database_is_configured(c):
         problems.append(

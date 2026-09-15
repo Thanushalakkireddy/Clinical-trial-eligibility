@@ -86,6 +86,9 @@ async function startServer() {
       service: 'clinical-trial-eligibility-api',
       environment: process.env.ENVIRONMENT || 'development',
       version: '1.0.0',
+      llm_provider: process.env.LLM_PROVIDER || 'xai',
+      xai_configured: Boolean(process.env.XAI_API_KEY),
+      gemini_configured: Boolean(process.env.GEMINI_API_KEY),
     });
   };
 
@@ -255,7 +258,7 @@ async function startServer() {
         extraction_metadata: {
           extracted_at: new Date().toISOString(),
           total_pages: extractedTrial.total_pages_analyzed,
-          model: 'gemini-3.8-flash',
+          model: process.env.XAI_MODEL || (process.env.LLM_PROVIDER === 'gemini' ? (process.env.GEMINI_MODEL || 'gemini-3.8-flash') : 'grok-2-latest'),
           inclusion_count: extractedTrial.inclusion_criteria.length,
           exclusion_count: extractedTrial.exclusion_criteria.length,
           other_count: extractedTrial.other_requirements.length,

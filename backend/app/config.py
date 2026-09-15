@@ -38,7 +38,16 @@ class Settings(BaseSettings):
             return v
         return []
 
-    # Gemini and LLM settings
+    # LLM provider settings (xai or gemini)
+    llm_provider: str = Field(default="xai", alias="LLM_PROVIDER")
+
+    # xAI / Grok settings
+    xai_api_key: str | None = Field(default=None, alias="XAI_API_KEY")
+    xai_model: str = Field(default="grok-2-latest", alias="XAI_MODEL")
+    xai_base_url: str = Field(default="https://api.x.ai/v1", alias="XAI_BASE_URL")
+    xai_request_timeout_seconds: int = Field(default=120, alias="XAI_REQUEST_TIMEOUT_SECONDS")
+
+    # Gemini settings (backward compatibility)
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
     gemini_model: str = Field(default="gemini-3.8-flash", alias="GEMINI_MODEL")
 
@@ -54,6 +63,7 @@ class Settings(BaseSettings):
         "checkpointer_connect_timeout_seconds",
         "checkpointer_setup_timeout_seconds",
         "gemini_request_timeout_seconds",
+        "xai_request_timeout_seconds",
         "embedding_model_load_timeout_seconds",
         "rag_retrieve_timeout_seconds",
         "workflow_timeout_seconds",

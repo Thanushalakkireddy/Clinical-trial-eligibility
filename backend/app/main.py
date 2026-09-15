@@ -16,7 +16,12 @@ from app.routers.patients import router as patients_router
 from app.routers.rag import router as rag_router
 from app.routers.trials import router as trials_router
 from app.routers.workflow import router as workflow_router
-from app.runtime_config import gemini_is_configured, require_runtime_config
+from app.runtime_config import (
+    gemini_is_configured,
+    llm_is_configured,
+    require_runtime_config,
+    xai_is_configured,
+)
 
 
 class SecurityHeadersMiddleware:
@@ -52,7 +57,10 @@ class SecurityHeadersMiddleware:
 class HealthResponse(BaseModel):
     status: str
     service: str
+    llm_provider: str = "xai"
+    xai_configured: bool = False
     gemini_configured: bool = False
+    llm_configured: bool = False
     database_configured: bool = False
 
 
@@ -123,7 +131,10 @@ def create_app() -> FastAPI:
         return HealthResponse(
             status="ok",
             service=settings.app_name,
+            llm_provider=settings.llm_provider,
+            xai_configured=xai_is_configured(settings),
             gemini_configured=gemini_is_configured(settings),
+            llm_configured=llm_is_configured(settings),
             database_configured=persist_is_configured(),
         )
 

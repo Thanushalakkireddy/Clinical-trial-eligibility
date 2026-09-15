@@ -12,7 +12,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from app.llm.gemini_service import GeminiLLMService
+from app.llm import LLMServiceType, get_llm_service
 from app.pdf.processor import PDFDocument
 from app.schemas.protocol import (
     CriterionType,
@@ -43,13 +43,13 @@ class ProtocolExtractionError(Exception):
 class ProtocolExtractionAgent:
     """Agent responsible for parsing clinical trial protocol documents into structured criteria."""
 
-    def __init__(self, llm_service: Optional[GeminiLLMService] = None) -> None:
-        """Initialize the agent with a centralized GeminiLLMService instance.
+    def __init__(self, llm_service: Optional[LLMServiceType] = None) -> None:
+        """Initialize the agent with a centralized LLM service instance.
 
         Args:
-            llm_service: Reusable Gemini service instance (instantiated if omitted).
+            llm_service: Reusable LLM service instance (instantiated via provider factory if omitted).
         """
-        self.llm_service = llm_service or GeminiLLMService()
+        self.llm_service = llm_service or get_llm_service()
 
     async def extract_protocol(
         self,
@@ -385,7 +385,10 @@ Respond strictly with valid JSON conforming to this schema:
         extracted_protocol_id = trial_id
         extracted_title = ""
 
-        item_re = re.compile(r"^(?:(?:\d+|[a-zA-Z])[\.\)]|\u2022|\-|\*|\[\d+\])\s*(.+)", re.UNICODE)
+        item_re = re.compile(
+            r"^(?:(?:INC|EXC|OTHER)[-_]?\d+\s*[:\.\)]|\bCriterion\s*\d+\s*[:\.\)]|(?:\d+|[a-zA-Z])[\.\)]|\u2022|\-|\*|\[\d+\])\s*(.+)",
+            re.UNICODE | re.IGNORECASE,
+        )
 
         current_mode: Optional[str] = None  # 'INC', 'EXC', 'OTHER'
         current_text: str = ""
@@ -447,7 +450,7 @@ Respond strictly with valid JSON conforming to this schema:
                     current_section = "Other Requirements"
                     continue
                 elif re.search(
-                    r"^(?:study\s+procedures|safety\s+monitoring|statistical\s+analysis|discontinuation|endpoints|references)\b",
+                    r"^(?:required\s+screening|investigations|study\s+treatment|endpoints|study\s+procedures|safety\s+monitoring|statistical\s+analysis|discontinuation|withdrawal|references)\b",
                     line,
                     re.I,
                 ):
@@ -456,6 +459,22 @@ Respond strictly with valid JSON conforming to this schema:
                     continue
 
                 if current_mode:
+                    # Check for multiple criteria packed into a single line (e.g. EXC-007: ... EXC-008: ...)
+                    inline_splits = re.split(r"(?=(?:INC|EXC|OTHER)[-_]?\d+\s*[:\.\)])", line, flags=re.I)
+                    if len(inline_splits) > 1 and any(re.match(r"^(?:INC|EXC|OTHER)[-_]?\d+", s, re.I) for s in inline_splits if s.strip()):
+                        for chunk in inline_splits:
+                            chunk = chunk.strip()
+                            if not chunk:
+                                continue
+                            m_chunk = item_re.match(chunk)
+                            if m_chunk:
+                                flush_current()
+                                current_text = m_chunk.group(1)
+                                current_page = p.page_number
+                            elif current_text:
+                                current_text += " " + chunk
+                        continue
+
                     m = item_re.match(line)
                     if m:
                         flush_current()

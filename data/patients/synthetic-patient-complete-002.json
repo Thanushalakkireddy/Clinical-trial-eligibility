@@ -1,7 +1,7 @@
 {
   "patient_profile_id": "synthetic-patient-complete-002",
   "profile_status": "processed",
-  "created_at": "2026-09-15T04:13:28.744Z",
+  "created_at": "2026-09-15T05:00:46.144Z",
   "demographics": {
     "age": 52,
     "sex": "female",
@@ -101,7 +101,7 @@
   "metadata": {
     "source": "Uploaded JSON",
     "source_document": "synthetic_complete_patient_record_v2.json",
-    "extraction_timestamp": "2026-09-15T04:13:28.744Z",
+    "extraction_timestamp": "2026-09-15T05:00:46.143Z",
     "extracted_fields": [
       "patient_id",
       "age",

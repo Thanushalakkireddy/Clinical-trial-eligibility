@@ -11,7 +11,7 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 from app.agents.deterministic_comparator import DeterministicComparator
-from app.llm.gemini_service import GeminiLLMService
+from app.llm import LLMServiceType, get_llm_service
 from app.schemas.inclusion import (
     InclusionAssessment,
     InclusionCriterionAssessment,
@@ -47,10 +47,10 @@ class InclusionMatchingAgent:
     def __init__(
         self,
         comparator: Optional[DeterministicComparator] = None,
-        llm_service: Optional[GeminiLLMService] = None,
+        llm_service: Optional[LLMServiceType] = None,
     ) -> None:
         self.comparator = comparator or DeterministicComparator()
-        self.llm_service = llm_service or GeminiLLMService()
+        self.llm_service = llm_service or get_llm_service()
 
     async def evaluate(
         self,

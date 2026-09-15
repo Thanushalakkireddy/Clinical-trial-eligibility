@@ -13,7 +13,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from app.llm.gemini_service import GeminiLLMService
+from app.llm import LLMServiceType, get_llm_service
 from app.schemas.exclusion import (
     ExclusionAssessment,
     ExclusionCriterionAssessment,
@@ -1526,10 +1526,10 @@ class ExclusionDetectionAgent:
     def __init__(
         self,
         comparator: Optional[ExclusionComparator] = None,
-        llm_service: Optional[GeminiLLMService] = None,
+        llm_service: Optional[LLMServiceType] = None,
     ) -> None:
         self.comparator = comparator or ExclusionComparator()
-        self.llm_service = llm_service or GeminiLLMService()
+        self.llm_service = llm_service or get_llm_service()
 
     async def evaluate(
         self,
