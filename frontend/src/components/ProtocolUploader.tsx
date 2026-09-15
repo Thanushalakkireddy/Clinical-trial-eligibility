@@ -108,6 +108,7 @@ export const ProtocolUploader: React.FC<ProtocolUploaderProps> = ({ onTrialActiv
       setErrorMessage(err.message || 'Failed to extract protocol criteria.');
     } finally {
       setExtracting(false);
+      setUploading(false);
     }
   };
 
@@ -188,6 +189,9 @@ export const ProtocolUploader: React.FC<ProtocolUploaderProps> = ({ onTrialActiv
           <input
             type="file"
             ref={fileInputRef}
+            onClick={(e) => {
+              (e.target as HTMLInputElement).value = '';
+            }}
             onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
             accept=".pdf,application/pdf"
             className="hidden"
@@ -222,6 +226,17 @@ export const ProtocolUploader: React.FC<ProtocolUploaderProps> = ({ onTrialActiv
         {/* Upload Action Button */}
         {file && !extractionResult && (
           <div className="mt-4 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setFile(null);
+                setErrorMessage(null);
+              }}
+              disabled={uploading || extracting}
+              className="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Select Different PDF
+            </button>
             <button
               type="button"
               onClick={handleUpload}

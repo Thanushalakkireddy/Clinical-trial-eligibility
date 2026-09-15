@@ -27,7 +27,11 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0", alias="HOST")
     port: int = Field(default=8000, alias="PORT")
     cors_origins: Union[List[str], str] = Field(
-        default=["http://localhost:3000", "http://127.0.0.1:3000"],
+        default=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "https://clinical-trial-eligibility-1.onrender.com",
+        ],
         alias="CORS_ORIGINS",
     )
 
@@ -35,17 +39,20 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str):
-            if not v:
+            v_str = v.strip()
+            if not v_str:
                 return []
-            if v.startswith("[") and v.endswith("]"):
+            if v_str.startswith("[") and v_str.endswith("]"):
                 import json
                 try:
-                    return json.loads(v)
+                    parsed = json.loads(v_str)
+                    if isinstance(parsed, list):
+                        return [str(i).strip().rstrip("/") for i in parsed if str(i).strip()]
                 except Exception:
                     pass
-            return [i.strip() for i in v.split(",") if i.strip()]
+            return [i.strip().rstrip("/") for i in v_str.split(",") if i.strip()]
         elif isinstance(v, list):
-            return v
+            return [str(i).strip().rstrip("/") for i in v if str(i).strip()]
         return []
 
     # LLM provider settings (xai or gemini)
@@ -55,7 +62,7 @@ class Settings(BaseSettings):
     xai_api_key: str | None = Field(default=None, alias="XAI_API_KEY")
     xai_model: str = Field(default="grok-2-latest", alias="XAI_MODEL")
     xai_base_url: str = Field(default="https://api.x.ai/v1", alias="XAI_BASE_URL")
-    xai_request_timeout_seconds: int = Field(default=120, alias="XAI_REQUEST_TIMEOUT_SECONDS")
+    xai_request_timeout_seconds: int = Field(default=25, alias="XAI_REQUEST_TIMEOUT_SECONDS")
 
     # Gemini settings (backward compatibility)
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")

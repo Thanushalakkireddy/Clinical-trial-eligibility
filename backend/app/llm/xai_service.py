@@ -73,7 +73,19 @@ class XAiLLMService(LLMProvider):
         self._api_key = (api_key or cfg.xai_api_key or "").strip()
         self.model = (model or cfg.xai_model or "grok-2-latest").strip()
         self.base_url = (base_url or getattr(cfg, "xai_base_url", "https://api.x.ai/v1")).rstrip("/")
-        self._http_timeout = getattr(cfg, "xai_request_timeout_seconds", 120)
+        self._http_timeout = getattr(cfg, "xai_request_timeout_seconds", 25)
+
+    def _get_timeout(self) -> httpx.Timeout:
+        """Create bounded httpx.Timeout with explicit connect, read, write, and pool limits."""
+        timeout_sec = float(self._http_timeout) if self._http_timeout and self._http_timeout > 0 else 25.0
+        # Hard upper bound to guarantee Render upstream (100s) is never approached
+        timeout_sec = min(timeout_sec, 30.0)
+        return httpx.Timeout(
+            connect=min(10.0, timeout_sec),
+            read=timeout_sec,
+            write=10.0,
+            pool=10.0,
+        )
 
     @property
     def is_configured(self) -> bool:
@@ -131,7 +143,7 @@ class XAiLLMService(LLMProvider):
 
         call_timer = start_timer()
         try:
-            timeout = httpx.Timeout(self._http_timeout if self._http_timeout and self._http_timeout > 0 else 120.0)
+            timeout = self._get_timeout()
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     f"{self.base_url}/chat/completions",
@@ -220,7 +232,7 @@ class XAiLLMService(LLMProvider):
 
         call_timer = start_timer()
         try:
-            timeout = httpx.Timeout(self._http_timeout if self._http_timeout and self._http_timeout > 0 else 120.0)
+            timeout = self._get_timeout()
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     f"{self.base_url}/chat/completions",

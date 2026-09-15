@@ -106,26 +106,29 @@ class ProtocolExtractionAgent:
                     return protocol
             except Exception as val_err:
                 logger.warning(
-                    "LLM response parsing/validation yielded no criteria for trial %s (%s). Attempting deterministic fallback...",
+                    "LLM response parsing/validation yielded no criteria for trial %s (%s).",
                     trial_id,
                     val_err,
                 )
 
-        # Fallback to deterministic document parsing from PDF pages
+        # Fallback to deterministic extraction
+        logger.info(
+            "Executing deterministic protocol extraction fallback for trial %s...",
+            trial_id,
+        )
         deterministic_protocol = self._extract_deterministically(pdf_doc, trial_id)
         if (
             len(deterministic_protocol.inclusion_criteria) > 0
             or len(deterministic_protocol.exclusion_criteria) > 0
         ):
             logger.info(
-                "Deterministic extraction succeeded for trial %s: %d inclusions, %d exclusions",
+                "Fallback deterministic extraction succeeded for trial %s: %d inclusions, %d exclusions.",
                 trial_id,
                 len(deterministic_protocol.inclusion_criteria),
                 len(deterministic_protocol.exclusion_criteria),
             )
             return deterministic_protocol
 
-        # If both LLM and deterministic extraction failed to identify criteria
         if llm_error is not None:
             raise ProtocolExtractionError(
                 f"Document '{pdf_doc.filename}' contains no identifiable clinical trial inclusion or exclusion criteria "
@@ -356,7 +359,21 @@ Respond strictly with valid JSON conforming to this schema:
         else:
             source_excerpt = text[:200]
 
-        criterion_id = f"{prefix}-{index:03d}"
+        # Preserve explicit criterion ID if provided, otherwise generate prefix-index
+        explicit_id = item.get("criterion_id") or item.get("id")
+        if explicit_id:
+            m_id = re.search(r"\b((?:INC|EXC|OTHER)[-_]?\d+)\b", str(explicit_id), re.I)
+            if m_id:
+                criterion_id = re.sub(
+                    r"^(inc|exc|other)[-_]?(\d+)",
+                    lambda m: f"{m.group(1).upper()}-{int(m.group(2)):03d}",
+                    m_id.group(1),
+                    flags=re.I,
+                )
+            else:
+                criterion_id = f"{prefix}-{index:03d}"
+        else:
+            criterion_id = f"{prefix}-{index:03d}"
 
         return ProtocolCriterion(
             criterion_id=criterion_id,
@@ -375,8 +392,15 @@ Respond strictly with valid JSON conforming to this schema:
     ) -> ExtractedProtocol:
         """Deterministically extract protocol criteria from PDFDocument pages.
 
-        Acts as a reliable, grounded fallback when LLM service is offline or fails.
-        Extracts sections, assigns exact 1-indexed source pages, excerpts, and deterministic IDs.
+        Recognizes standard clinical trial protocol section headings:
+          - Inclusion Criteria, Inclusion Criteria:, 4. Inclusion Criteria, INCLUSION CRITERIA
+          - Exclusion Criteria, Exclusion Criteria:, 5. Exclusion Criteria, EXCLUSION CRITERIA
+          - Other requirements / Study parameters
+        Recognizes criteria item bulleting and IDs:
+          - INC-001, EXC-001, [INC-001], Criterion 1:
+          - 1., 1), (1), 1.1, 1.1.
+          - •, -, *, etc.
+        Filters out page headers and footers (e.g. '-- 1 of 1 --', 'Page X of Y').
         """
         inc_raw: List[Dict[str, Any]] = []
         exc_raw: List[Dict[str, Any]] = []
@@ -385,29 +409,62 @@ Respond strictly with valid JSON conforming to this schema:
         extracted_protocol_id = trial_id
         extracted_title = ""
 
+        # Section header patterns
+        inc_header_re = re.compile(
+            r"^(?:(?:\d+(?:\.\d+)*|[ivxlcdm]+)[\.\:\)]\s*|(?:\d+\.\d+\s+)|section\s*[\d\.]+\s*[:\.\-]?\s*|part\s+[a-z0-9]+\s*[:\.\-]?\s*)?(?:key\s+|major\s+|study\s+)?inclusion\s+(?:criteria|requirements|criterion)\b",
+            re.IGNORECASE,
+        )
+        exc_header_re = re.compile(
+            r"^(?:(?:\d+(?:\.\d+)*|[ivxlcdm]+)[\.\:\)]\s*|(?:\d+\.\d+\s+)|section\s*[\d\.]+\s*[:\.\-]?\s*|part\s+[a-z0-9]+\s*[:\.\-]?\s*)?(?:key\s+|major\s+|study\s+)?exclusion\s+(?:criteria|requirements|criterion)\b",
+            re.IGNORECASE,
+        )
+        other_header_re = re.compile(
+            r"^(?:(?:\d+(?:\.\d+)*|[ivxlcdm]+)[\.\:\)]\s*|(?:\d+\.\d+\s+)|section\s*[\d\.]+\s*[:\.\-]?\s*|part\s+[a-z0-9]+\s*[:\.\-]?\s*)?(?:study\s+parameters|other\s+requirements|general\s+requirements|eligibility\s+overview|other\s+eligibility\s+criteria)\b",
+            re.IGNORECASE,
+        )
+        stop_section_re = re.compile(
+            r"^(?:(?:\d+(?:\.\d+)*|[ivxlcdm]+)[\.\:\)]\s*|(?:\d+\.\d+\s+)|section\s*[\d\.]+\s*[:\.\-]?\s*|part\s+[a-z0-9]+\s*[:\.\-]?\s*)?(?:required\s+screening|investigations|study\s+treatment|endpoints|study\s+procedures|safety\s+monitoring|statistical\s+analysis|discontinuation|withdrawal|references|appendix)\b",
+            re.IGNORECASE,
+        )
+
         item_re = re.compile(
-            r"^(?:(?:INC|EXC|OTHER)[-_]?\d+\s*[:\.\)]|\bCriterion\s*\d+\s*[:\.\)]|(?:\d+|[a-zA-Z])[\.\)]|\u2022|\-|\*|\[\d+\])\s*(.+)",
+            r"^(?:(?P<crit_id>(?:INC|EXC|OTHER)[-_]?\d+|\bCriterion\s*(?:(?:INC|EXC|OTHER)[-_]?)?\d+)\s*[:\.\)\-]?\s*|"
+            r"(?:\(\s*(?:\d+(?:\.\d+)*|[a-zA-Z]|[ivxlcdm]+)\s*\)|(?:\d+\.\d+(?:\.\d+)*[\.\:\)]?|\d+[\.\:\)]|[a-zA-Z][\.\:\)]|[ivxlcdm]+[\.\:\)]))\s*|"
+            r"[\u2022\u2023\u25E6\u2043\u2219\u25AA\u25AB\u25CF\u25CB\*\u2013\u2014\-]\s*|"
+            r"\[\s*(?P<bracket_id>(?:INC|EXC|OTHER)[-_]?\d+|\d+)\s*\]\s*)(.+)",
             re.UNICODE | re.IGNORECASE,
         )
 
+        def is_header_or_footer(text_line: str) -> bool:
+            l = text_line.strip().lower()
+            if re.search(r"^(?:--\s*\d+\s+(?:of|\/)\s*\d+\s*--|page\s+\d+(?:\s*(?:of|\/)\s*\d+)?|\d+\s+(?:of|\/)\s*\d+|--\s*\d+\s*--)$", l):
+                return True
+            if re.search(r"^(?:confidential|all\s+rights\s+reserved|proprietary|draft|final\s+version)$", l):
+                return True
+            return False
+
         current_mode: Optional[str] = None  # 'INC', 'EXC', 'OTHER'
         current_text: str = ""
+        current_id: Optional[str] = None
         current_page: int = 1
         current_section: str = ""
 
         def flush_current():
-            nonlocal current_text, current_mode, current_page, current_section
+            nonlocal current_text, current_mode, current_page, current_section, current_id
             if not current_text or not current_mode:
                 current_text = ""
+                current_id = None
                 return
             cleaned = re.sub(r"\s+", " ", current_text).strip()
             if len(cleaned) >= 8:
-                item = {
+                item: Dict[str, Any] = {
                     "text": cleaned,
                     "source_page": current_page,
                     "section": current_section,
                     "source_excerpt": cleaned[:200],
                 }
+                if current_id:
+                    item["criterion_id"] = current_id
                 if current_mode == "INC":
                     inc_raw.append(item)
                 elif current_mode == "EXC":
@@ -415,10 +472,14 @@ Respond strictly with valid JSON conforming to this schema:
                 elif current_mode == "OTHER":
                     other_raw.append(item)
             current_text = ""
+            current_id = None
 
         for p in pdf_doc.pages:
             lines = [l.strip() for l in p.text.splitlines() if l.strip()]
             for line in lines:
+                if is_header_or_footer(line):
+                    continue
+
                 # Look for protocol ID e.g. Protocol ID: SYN-CARDIO-001
                 if not extracted_protocol_id or extracted_protocol_id == trial_id:
                     proto_m = re.search(r"(?:protocol\s*(?:id|number|no\.?|code)\s*[:#-]?\s*)([A-Za-z0-9_-]{4,30})", line, re.I)
@@ -426,34 +487,33 @@ Respond strictly with valid JSON conforming to this schema:
                         extracted_protocol_id = proto_m.group(1).strip()
 
                 # Look for title on first page
-                if not extracted_title and p.page_number == 1:
-                    if "protocol" in line.lower() and not re.search(r"protocol\s*id", line, re.I):
+                title_m = re.search(r"^(?:study\s+)?title\s*[:#-]?\s*(.+)", line, re.I)
+                if title_m:
+                    extracted_title = title_m.group(1).strip()
+                elif not extracted_title and p.page_number == 1:
+                    if "protocol" in line.lower() and not re.search(r"protocol\s*id", line, re.I) and not re.match(r"^(?:clinical\s+trial\s+protocol|protocol)$", line.strip(), re.I):
                         extracted_title = line.strip()
 
                 # Section header detection
-                if re.search(r"^(?:key\s+)?inclusion\s+(?:criteria|requirements)\b", line, re.I):
+                if inc_header_re.search(line):
                     flush_current()
                     current_mode = "INC"
                     current_page = p.page_number
                     current_section = "Inclusion Criteria"
                     continue
-                elif re.search(r"^(?:key\s+)?exclusion\s+(?:criteria|requirements)\b", line, re.I):
+                elif exc_header_re.search(line):
                     flush_current()
                     current_mode = "EXC"
                     current_page = p.page_number
                     current_section = "Exclusion Criteria"
                     continue
-                elif re.search(r"^(?:study\s+parameters|other\s+requirements|eligibility\s+overview)\b", line, re.I):
+                elif other_header_re.search(line):
                     flush_current()
                     current_mode = "OTHER"
                     current_page = p.page_number
                     current_section = "Other Requirements"
                     continue
-                elif re.search(
-                    r"^(?:required\s+screening|investigations|study\s+treatment|endpoints|study\s+procedures|safety\s+monitoring|statistical\s+analysis|discontinuation|withdrawal|references)\b",
-                    line,
-                    re.I,
-                ):
+                elif stop_section_re.search(line):
                     flush_current()
                     current_mode = None
                     continue
@@ -469,7 +529,8 @@ Respond strictly with valid JSON conforming to this schema:
                             m_chunk = item_re.match(chunk)
                             if m_chunk:
                                 flush_current()
-                                current_text = m_chunk.group(1)
+                                current_id = m_chunk.group("crit_id") or m_chunk.group("bracket_id")
+                                current_text = m_chunk.groups()[-1]
                                 current_page = p.page_number
                             elif current_text:
                                 current_text += " " + chunk
@@ -478,11 +539,13 @@ Respond strictly with valid JSON conforming to this schema:
                     m = item_re.match(line)
                     if m:
                         flush_current()
-                        current_text = m.group(1)
+                        current_id = m.group("crit_id") or m.group("bracket_id")
+                        current_text = m.groups()[-1]
                         current_page = p.page_number
                     elif current_text:
                         current_text += " " + line
                     elif len(line) >= 20 and not re.match(r"^(?:inclusion|exclusion|criteria|section|page)\b", line, re.I):
+                        flush_current()
                         current_text = line
                         current_page = p.page_number
 
@@ -542,7 +605,7 @@ Respond strictly with valid JSON conforming to this schema:
             extraction_metadata={
                 "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "total_pages": pdf_doc.total_pages,
-                "model": "deterministic_fallback_extractor",
+                "model": "deterministic_protocol_extractor",
                 "inclusion_count": len(inclusions),
                 "exclusion_count": len(exclusions),
                 "other_count": len(others),

@@ -16,6 +16,17 @@ const FASTAPI_BASE_URL =
   '';
 
 /**
+ * Configurable timeout for protocol extraction (Render cold-starts can take 60-100s).
+ * Defaults to 120 seconds for resilient production communication with sleeping services.
+ */
+const DEFAULT_EXTRACTION_TIMEOUT_MS = 120000;
+export const PROTOCOL_EXTRACTION_TIMEOUT_MS =
+  (typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    Number(import.meta.env.VITE_PROTOCOL_EXTRACTION_TIMEOUT_MS)) ||
+  DEFAULT_EXTRACTION_TIMEOUT_MS;
+
+/**
  * Service to interact with the FastAPI Backend.
  */
 export async function getHealthStatus(): Promise<HealthResponse> {
@@ -182,7 +193,8 @@ export async function uploadTrialPDF(file: File, trialId?: string): Promise<PDFU
  */
 export async function extractProtocol(
   trialId: string,
-  file?: File
+  file?: File,
+  timeoutMs: number = PROTOCOL_EXTRACTION_TIMEOUT_MS
 ): Promise<ProtocolExtractionResponse> {
   const cleanTrialId = trialId.replace(/[^a-zA-Z0-9_-]/g, '') || 'TRIAL-DEFAULT';
   const effectiveBaseUrl = FASTAPI_BASE_URL || API_BASE_URL;
@@ -195,10 +207,31 @@ export async function extractProtocol(
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
+    const controller = new AbortController();
+    const timeoutDuration = timeoutMs > 0 ? timeoutMs : DEFAULT_EXTRACTION_TIMEOUT_MS;
+    const timeoutSeconds = Math.round(timeoutDuration / 1000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError' || controller.signal.aborted) {
+        throw new Error(
+          `Protocol extraction request timed out after ${timeoutSeconds} seconds. The backend server may be waking up from cold-start or processing a complex protocol. Please try again.`
+        );
+      }
+      throw new Error(
+        `Unable to reach backend server (${fetchErr.message || 'network failure'}). Please check your network connection and verify backend status.`
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       let errorDetail = `Protocol extraction failed with status: ${response.status}`;

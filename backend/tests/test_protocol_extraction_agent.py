@@ -258,3 +258,39 @@ def test_api_extract_protocol_invalid_extension():
         response = client.post("/api/v1/trials/TRIAL-999/extract-protocol", files=files)
         assert response.status_code == 400
         assert "must be a PDF document" in response.json()["detail"]
+
+
+def test_api_extract_protocol_actual_physical_pdf_without_xkiro():
+    """Verify extraction from actual physical PDF succeeds deterministically with HTTP 200 without xKiro."""
+    from app.llm.xai_service import XAiAPIError
+
+    pdf_path = Path("SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf")
+    assert pdf_path.exists(), f"Physical protocol PDF missing at {pdf_path}"
+
+    app = create_app()
+    with patch("app.llm.xai_service.XAiLLMService.generate_json", AsyncMock(side_effect=XAiAPIError("xKiro unavailable"))), \
+         patch("app.llm.gemini_service.GeminiLLMService.generate_json", AsyncMock(side_effect=Exception("Gemini unavailable"))):
+        with TestClient(app) as client:
+            with open(pdf_path, "rb") as f:
+                response = client.post(
+                    "/api/v1/trials/SYN-CARDIO-001/extract-protocol",
+                    files={"file": (pdf_path.name, f, "application/pdf")},
+                )
+            assert response.status_code == 200, response.text
+            payload = response.json()
+            assert payload["trial_id"] == "SYN-CARDIO-001"
+            assert payload["protocol_id"] == "SYN-CARDIO-001"
+            assert len(payload["inclusion_criteria"]) == 4
+            assert len(payload["exclusion_criteria"]) == 4
+            assert len(payload["inclusion_criteria"]) + len(payload["exclusion_criteria"]) == 8
+
+            # Verify page provenance
+            for crit in payload["inclusion_criteria"]:
+                assert crit["source_page"] >= 1
+                assert crit["type"] == "inclusion"
+                assert crit["source_excerpt"]
+            for crit in payload["exclusion_criteria"]:
+                assert crit["source_page"] >= 1
+                assert crit["type"] == "exclusion"
+                assert crit["source_excerpt"]
+

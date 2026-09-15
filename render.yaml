@@ -38,9 +38,9 @@ services:
         # in build logs. Set the real value in the Render dashboard.
         sync: false
       - key: CORS_ORIGINS
-        value: replace-me-with-vercel-frontend-url
-        # Set to the REAL Vercel frontend origin, e.g.
-        #   https://clinical-trial-eligibility.vercel.app
+        value: https://clinical-trial-eligibility-1.onrender.com
+        # Set to the deployed frontend origin:
+        #   https://clinical-trial-eligibility-1.onrender.com
         sync: false
       - key: DATABASE_URL
         fromDatabase:

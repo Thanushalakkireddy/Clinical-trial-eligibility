@@ -165,36 +165,74 @@ export class DataStore {
         try {
           const files = fs.readdirSync(vDir);
           for (const f of files) {
+            const entryPath = path.join(vDir, f);
+            let metadataPath: string | null = null;
+            let derivedTrialId = f;
+
             if (f.endsWith('_metadata.json')) {
+              metadataPath = entryPath;
+              derivedTrialId = f.replace('_metadata.json', '');
+            } else {
               try {
-                const trialId = f.replace('_metadata.json', '');
-                const raw = fs.readFileSync(path.join(vDir, f), 'utf8');
-                const data = JSON.parse(raw);
-                const chunkList: RAGChunk[] = [];
-                for (const key of Object.keys(data)) {
-                  const item = data[key];
-                  if (item && item.text) {
-                    chunkList.push({
-                      chunk_id: item.chunk_id || `${trialId}_c_${key}`,
-                      trial_id: item.trial_id || trialId,
-                      text: item.text,
-                      page_number: item.page_number || 1,
-                      section: item.section || null,
-                      criterion_type: item.criterion_type || null,
-                    });
+                if (fs.statSync(entryPath).isDirectory()) {
+                  const subMeta = path.join(entryPath, 'metadata.json');
+                  if (fs.existsSync(subMeta)) {
+                    metadataPath = subMeta;
+                    derivedTrialId = f;
                   }
-                }
-                if (chunkList.length > 0) {
-                  this.chunks.set(trialId, chunkList);
-                  this.indexedTrials.add(trialId);
                 }
               } catch {
                 // ignore
               }
             }
+
+            if (metadataPath) {
+              try {
+                const raw = fs.readFileSync(metadataPath, 'utf8');
+                const data = JSON.parse(raw);
+                const trialId = data.trial_id || derivedTrialId;
+                const chunkList: RAGChunk[] = [];
+
+                if (Array.isArray(data.chunks)) {
+                  for (const c of data.chunks) {
+                    if (c && c.text) {
+                      chunkList.push({
+                        chunk_id: c.chunk_id || `${trialId}_c_${chunkList.length}`,
+                        trial_id: trialId,
+                        text: c.text,
+                        page_number: c.source_page || c.page_number || 1,
+                        section: c.section || null,
+                        criterion_type: c.criterion_type || null,
+                      });
+                    }
+                  }
+                } else if (typeof data === 'object' && data !== null) {
+                  for (const key of Object.keys(data)) {
+                    const item = data[key];
+                    if (item && item.text) {
+                      chunkList.push({
+                        chunk_id: item.chunk_id || `${trialId}_c_${key}`,
+                        trial_id: item.trial_id || trialId,
+                        text: item.text,
+                        page_number: item.source_page || item.page_number || 1,
+                        section: item.section || null,
+                        criterion_type: item.criterion_type || null,
+                      });
+                    }
+                  }
+                }
+
+                if (chunkList.length > 0) {
+                  this.chunks.set(trialId, chunkList);
+                  this.indexedTrials.add(trialId);
+                }
+              } catch {
+                // ignore corrupted file
+              }
+            }
           }
         } catch {
-          // ignore
+          // ignore directory error
         }
       }
     }
