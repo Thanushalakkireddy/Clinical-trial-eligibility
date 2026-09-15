@@ -1,0 +1,179 @@
+{
+  "trial_id": "trial_mu1heyv0_a3sxu",
+  "trial_title": "SYN-ONC-001 Clinical Trial Protocol",
+  "trial_identifier": "TRIAL-_A3SXU",
+  "inclusion_criteria": [
+    {
+      "criterion_id": "INC-001",
+      "type": "inclusion",
+      "text": "Criterion ID Requirement",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Criterion ID Requirement",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-002",
+      "type": "inclusion",
+      "text": "INC-001 Age ≥ 18 years.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-001 Age ≥ 18 years.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-003",
+      "type": "inclusion",
+      "text": "INC-002 Histologically confirmed advanced solid tumor.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-002 Histologically confirmed advanced solid tumor.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-004",
+      "type": "inclusion",
+      "text": "INC-003 ECOG Performance Status 0 or 1.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-003 ECOG Performance Status 0 or 1.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-005",
+      "type": "inclusion",
+      "text": "INC-004 eGFR ≥ 30 mL/min/1.73m².",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-004 eGFR ≥ 30 mL/min/1.73m².",
+      "originating_agent": "ProtocolExtractionAgent"
+    }
+  ],
+  "exclusion_criteria": [
+    {
+      "criterion_id": "EXC-001",
+      "type": "exclusion",
+      "text": "Criterion ID Requirement",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Criterion ID Requirement",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-002",
+      "type": "exclusion",
+      "text": "EXC-001 eGFR < 30 mL/min/1.73m².",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-001 eGFR < 30 mL/min/1.73m².",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-003",
+      "type": "exclusion",
+      "text": "EXC-002 Active serious infection.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-002 Active serious infection.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-004",
+      "type": "exclusion",
+      "text": "EXC-003 Uncontrolled cardiac disease.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-003 Uncontrolled cardiac disease.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-005",
+      "type": "exclusion",
+      "text": "EXC-004 Severe hypersensitivity to the investigational therapy.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-004 Severe hypersensitivity to the investigational therapy.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-006",
+      "type": "exclusion",
+      "text": "EXC-005 Recent systemic anticancer therapy.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-005 Recent systemic anticancer therapy.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-007",
+      "type": "exclusion",
+      "text": "IMPORTANT TESTING NOTE",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "IMPORTANT TESTING NOTE",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-008",
+      "type": "exclusion",
+      "text": "This is synthetic test data created to validate a clinical-trial eligibility software prototype. It is not a real clinical",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "This is synthetic test data created to validate a clinical-trial eligibility software prototype. It is not a real clinical",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-009",
+      "type": "exclusion",
+      "text": "protocol and must not be used for medical care.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "protocol and must not be used for medical care.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-010",
+      "type": "exclusion",
+      "text": "- 1 of 1 --",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1heyv0_a3sxu",
+      "source_document": "SYN-ONC-001_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "- 1 of 1 --",
+      "originating_agent": "ProtocolExtractionAgent"
+    }
+  ],
+  "other_requirements": [
+    "Written informed consent obtained prior to trial enrollment."
+  ],
+  "processing_status": "completed",
+  "total_pages_analyzed": 1
+}

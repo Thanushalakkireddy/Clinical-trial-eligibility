@@ -1,0 +1,113 @@
+{
+  "trial_id": "SYN-CARDIO-001",
+  "trial_title": "SYN CARDIO 001 Acute Myocardial Infarction Clinical Trial Protocol",
+  "trial_identifier": "SYN-CARDIO-001",
+  "inclusion_criteria": [
+    {
+      "criterion_id": "INC-001",
+      "type": "inclusion",
+      "text": "Age 18 years or older at time of signing informed consent.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Age 18 years or older at time of signing informed consent.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-002",
+      "type": "inclusion",
+      "text": "Confirmed acute myocardial infarction STEMI or NSTEMI with elevated troponin.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Confirmed acute myocardial infarction STEMI or NSTEMI with elevated troponin.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-003",
+      "type": "inclusion",
+      "text": "Index AMI occurred within 7 days prior to study randomization.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Index AMI occurred within 7 days prior to study randomization.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-004",
+      "type": "inclusion",
+      "text": "Hemodynamically stable: systolic BP >= 90 mmHg without vasopressor support.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Hemodynamically stable: systolic BP >= 90 mmHg without vasopressor support.",
+      "originating_agent": "ProtocolExtractionAgent"
+    }
+  ],
+  "exclusion_criteria": [
+    {
+      "criterion_id": "EXC-001",
+      "type": "exclusion",
+      "text": "Active major bleeding or clinically significant bleeding diathesis.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Active major bleeding or clinically significant bleeding diathesis.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-002",
+      "type": "exclusion",
+      "text": "Severe renal impairment: eGFR < 30 mL/min/1.73m2.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Severe renal impairment: eGFR < 30 mL/min/1.73m2.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-003",
+      "type": "exclusion",
+      "text": "Severe hepatic impairment or clinically active liver disease.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Severe hepatic impairment or clinically active liver disease.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-004",
+      "type": "exclusion",
+      "text": "Cardiogenic shock requiring mechanical circulatory support.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Cardiogenic shock requiring mechanical circulatory support.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-005",
+      "type": "exclusion",
+      "text": "- 1 of 1 --",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "SYN-CARDIO-001",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "- 1 of 1 --",
+      "originating_agent": "ProtocolExtractionAgent"
+    }
+  ],
+  "other_requirements": [
+    "Written informed consent obtained prior to trial enrollment."
+  ],
+  "processing_status": "completed",
+  "total_pages_analyzed": 1
+}

@@ -1,0 +1,11 @@
+{
+  "trial_id": "TRIAL-999",
+  "trial_title": "protocol",
+  "trial_identifier": null,
+  "inclusion_criteria": [],
+  "exclusion_criteria": [],
+  "other_requirements": [],
+  "processing_status": "validation_failed",
+  "total_pages_analyzed": 1,
+  "error_message": "Protocol validation failed: The document \"protocol.pdf\" appears to be an unrelated non-protocol document (e.g., resume or general text). It does not contain clinical trial eligibility criteria."
+}

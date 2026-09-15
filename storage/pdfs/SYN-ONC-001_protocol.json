@@ -1,0 +1,86 @@
+{
+  "trial_id": "SYN-ONC-001",
+  "trial_title": "Phase 2 Study in Advanced Solid Tumors",
+  "trial_identifier": "SYN-ONC-001",
+  "inclusion_criteria": [
+    {
+      "criterion_id": "INC-001",
+      "type": "inclusion",
+      "text": "Age >= 18",
+      "source_page": 1,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 1
+    },
+    {
+      "criterion_id": "INC-002",
+      "type": "inclusion",
+      "text": "Advanced solid tumor",
+      "source_page": 1,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 1
+    },
+    {
+      "criterion_id": "INC-003",
+      "type": "inclusion",
+      "text": "ECOG 0 or 1",
+      "source_page": 1,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 1
+    },
+    {
+      "criterion_id": "INC-004",
+      "type": "inclusion",
+      "text": "eGFR >= 30",
+      "source_page": 1,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 1
+    }
+  ],
+  "exclusion_criteria": [
+    {
+      "criterion_id": "EXC-001",
+      "type": "exclusion",
+      "text": "eGFR < 30",
+      "source_page": 2,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 2
+    },
+    {
+      "criterion_id": "EXC-002",
+      "type": "exclusion",
+      "text": "Active serious infection",
+      "source_page": 2,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 2
+    },
+    {
+      "criterion_id": "EXC-003",
+      "type": "exclusion",
+      "text": "Uncontrolled cardiac disease",
+      "source_page": 2,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 2
+    },
+    {
+      "criterion_id": "EXC-004",
+      "type": "exclusion",
+      "text": "Severe hypersensitivity",
+      "source_page": 2,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 2
+    },
+    {
+      "criterion_id": "EXC-005",
+      "type": "exclusion",
+      "text": "Recent systemic anticancer therapy within 14 days",
+      "source_page": 2,
+      "trial_id": "SYN-ONC-001",
+      "page_number": 2
+    }
+  ],
+  "other_requirements": [
+    "Written informed consent obtained prior to study procedures."
+  ],
+  "processing_status": "completed",
+  "total_pages_analyzed": 2
+}

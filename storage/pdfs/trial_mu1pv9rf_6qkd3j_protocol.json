@@ -1,0 +1,234 @@
+{
+  "trial_id": "trial_mu1pv9rf_6qkd3j",
+  "trial_title": "SYN CARDIO 001 Acute Myocardial Infarction Clinical Trial Protocol",
+  "trial_identifier": "SYN-CARDIO-001",
+  "inclusion_criteria": [
+    {
+      "criterion_id": "INC-001",
+      "type": "inclusion",
+      "text": "INC-001: Age ≥18 years at informed consent.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-001: Age ≥18 years at informed consent.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-002",
+      "type": "inclusion",
+      "text": "INC-002: Confirmed acute myocardial infarction (STEMI or NSTEMI) supported by compatible clinical evidence and cardiac",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-002: Confirmed acute myocardial infarction (STEMI or NSTEMI) supported by compatible clinical evidence and cardiac",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-003",
+      "type": "inclusion",
+      "text": "biomarker elevation.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "biomarker elevation.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-004",
+      "type": "inclusion",
+      "text": "INC-003: Index AMI occurred within 7 days before randomization.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-003: Index AMI occurred within 7 days before randomization.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-005",
+      "type": "inclusion",
+      "text": "INC-004: Appropriate standard-of-care cardiac evaluation has been completed and coronary angiography and/or",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-004: Appropriate standard-of-care cardiac evaluation has been completed and coronary angiography and/or",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-006",
+      "type": "inclusion",
+      "text": "revascularization performed when clinically indicated.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "revascularization performed when clinically indicated.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-007",
+      "type": "inclusion",
+      "text": "INC-005: Hemodynamically stable: systolic BP ≥90 mmHg without ongoing vasopressor support.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-005: Hemodynamically stable: systolic BP ≥90 mmHg without ongoing vasopressor support.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-008",
+      "type": "inclusion",
+      "text": "INC-006: Able and willing to provide written informed consent.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-006: Able and willing to provide written informed consent.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "INC-009",
+      "type": "inclusion",
+      "text": "INC-007: Participants with childbearing potential agree to protocol-defined contraception requirements.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "INC-007: Participants with childbearing potential agree to protocol-defined contraception requirements.",
+      "originating_agent": "ProtocolExtractionAgent"
+    }
+  ],
+  "exclusion_criteria": [
+    {
+      "criterion_id": "EXC-001",
+      "type": "exclusion",
+      "text": "EXC-001: Cardiogenic shock requiring ongoing vasopressor or mechanical circulatory support.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-001: Cardiogenic shock requiring ongoing vasopressor or mechanical circulatory support.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-002",
+      "type": "exclusion",
+      "text": "EXC-002: Active major bleeding or clinically significant bleeding disorder.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-002: Active major bleeding or clinically significant bleeding disorder.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-003",
+      "type": "exclusion",
+      "text": "EXC-003: Severe renal impairment, eGFR <30 mL/min/1.73 m².",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-003: Severe renal impairment, eGFR <30 mL/min/1.73 m².",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-004",
+      "type": "exclusion",
+      "text": "EXC-004: Severe hepatic impairment or clinically significant active liver disease that could interfere with treatment.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-004: Severe hepatic impairment or clinically significant active liver disease that could interfere with treatment.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-005",
+      "type": "exclusion",
+      "text": "EXC-005: Severe hypersensitivity or contraindication to investigational therapy or its components.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-005: Severe hypersensitivity or contraindication to investigational therapy or its components.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-006",
+      "type": "exclusion",
+      "text": "EXC-006: Active serious infection requiring intravenous antimicrobial therapy at screening.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "EXC-006: Active serious infection requiring intravenous antimicrobial therapy at screening.",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-007",
+      "type": "exclusion",
+      "text": "- 1 of 3 -- SYN-CARDIO-001 | Synthetic Clinical Trial Protocol Page 2 EXC-007: Major non-cardiac illness with expected survival <12 months. EXC-008: Major surgery or major trauma within 30 days before randomization, unless specifically permitted. EXC-009: Previous enrollment in this trial. EXC-010: Current pregnancy or breastfeeding. EXC-011: Participation in another interventional trial that could interfere with study treatment or endpoints. EXC-012: Any condition judged by the investigator to make participation unsafe or prevent reliable follow-up.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "- 1 of 3 -- SYN-CARDIO-001 | Synthetic Clinical Trial Protocol Page 2 EXC-007: Major non-cardiac illness with expected survival <12 months. EXC-008: Major surgery or major trauma within 30 days before",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-008",
+      "type": "exclusion",
+      "text": "Required Screening Information Demographics: age, sex, height, weight, pregnancy/breastfeeding status where applicable. AMI data: STEMI/NSTEMI, symptom onset, admission date/time, ECG findings, troponin and CK-MB where available, and diagnosis. Cardiovascular data: BP, heart rate, rhythm, heart failure signs, cardiogenic shock, angiography, PCI/CABG and dates. Laboratory data: creatinine/eGFR, liver tests, hemoglobin, platelets, electrolytes and protocol safety tests. Medical history: prior MI, heart failure, stroke/TIA, diabetes, hypertension, renal/liver disease, bleeding, allergies, infection, surgery/trauma and medications. Trial history: prior investigational products and participation in other interventional studies.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Required Screening Information Demographics: age, sex, height, weight, pregnancy/breastfeeding status where applicable. AMI data: STEMI/NSTEMI, symptom onset, admission date/time, ECG findings, tropon",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-009",
+      "type": "exclusion",
+      "text": "Investigations and Assessments 12-lead ECG; cardiac biomarkers; vital signs; clinical examination; renal/hepatic laboratory tests; echocardiography or other cardiac imaging when required; adverse-event and serious-adverse-event assessment.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Investigations and Assessments 12-lead ECG; cardiac biomarkers; vital signs; clinical examination; renal/hepatic laboratory tests; echocardiography or other cardiac imaging when required; adverse-even",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-010",
+      "type": "exclusion",
+      "text": "Study Treatment Participants receive investigational cardioprotective therapy or matching placebo in addition to standard-of-care treatment. Exact dose, route, treatment duration, dose modifications and permitted rescue medications would be specified in the final Investigational Product Manual.",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Study Treatment Participants receive investigational cardioprotective therapy or matching placebo in addition to standard-of-care treatment. Exact dose, route, treatment duration, dose modifications a",
+      "originating_agent": "ProtocolExtractionAgent"
+    },
+    {
+      "criterion_id": "EXC-011",
+      "type": "exclusion",
+      "text": "Endpoints Primary endpoint: Time to first cardiovascular death, recurrent MI, or hospitalization for heart failure through Month 12. Secondary endpoints: Individual primary-endpoint components, all-cause mortality, recurrent ischemic events, heart-failure hospitalization, treatment",
+      "source_page": 1,
+      "page_number": 1,
+      "trial_id": "trial_mu1pv9rf_6qkd3j",
+      "source_document": "SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf",
+      "source_excerpt": "Endpoints Primary endpoint: Time to first cardiovascular death, recurrent MI, or hospitalization for heart failure through Month 12. Secondary endpoints: Individual primary-endpoint components, all-ca",
+      "originating_agent": "ProtocolExtractionAgent"
+    }
+  ],
+  "other_requirements": [
+    "Written informed consent obtained prior to trial enrollment."
+  ],
+  "processing_status": "completed",
+  "total_pages_analyzed": 1
+}

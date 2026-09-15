@@ -1,0 +1,165 @@
+{
+  "patient_profile_id": "synthetic-patient-complete-002",
+  "profile_status": "processed",
+  "created_at": "2026-09-15T05:54:07.474Z",
+  "demographics": {
+    "age": 52,
+    "sex": "female",
+    "height": null,
+    "weight": null,
+    "bmi": null,
+    "pregnancy_status": "not_pregnant",
+    "breastfeeding_status": false
+  },
+  "conditions": [
+    {
+      "name": "advanced solid tumor",
+      "normalized_name": "advanced solid tumor",
+      "icd10_code": null,
+      "status": "active",
+      "diagnosed_date": null,
+      "source": "patient_input"
+    }
+  ],
+  "medical_history": [],
+  "medications": [],
+  "lab_values": [
+    {
+      "name": "ANC",
+      "normalized_name": "anc",
+      "value": 2400,
+      "unit": "cells/mcL",
+      "original_unit": "cells/mcL",
+      "reference_range": null,
+      "normalization_status": "normalized",
+      "source": "uploaded JSON",
+      "source_document": "synthetic_complete_patient_record_v2.json",
+      "original_field": "labs.anc"
+    },
+    {
+      "name": "Platelets",
+      "normalized_name": "platelets",
+      "value": 185000,
+      "unit": "cells/mcL",
+      "original_unit": "cells/mcL",
+      "reference_range": null,
+      "normalization_status": "normalized",
+      "source": "uploaded JSON",
+      "source_document": "synthetic_complete_patient_record_v2.json",
+      "original_field": "labs.platelets"
+    },
+    {
+      "name": "eGFR",
+      "normalized_name": "egfr",
+      "value": 68,
+      "unit": "mL/min/1.73m²",
+      "original_unit": "mL/min/1.73m²",
+      "reference_range": null,
+      "normalization_status": "normalized",
+      "source": "uploaded JSON",
+      "source_document": "synthetic_complete_patient_record_v2.json",
+      "original_field": "labs.egfr"
+    }
+  ],
+  "allergies": [
+    {
+      "allergen": "none documented",
+      "normalized_allergen": "none documented",
+      "reaction": null,
+      "severity": null,
+      "source": "uploaded JSON",
+      "source_document": "synthetic_complete_patient_record_v2.json",
+      "original_field": "allergies",
+      "substance": "none documented"
+    }
+  ],
+  "vital_signs": {
+    "systolic_bp": 125,
+    "diastolic_bp": 78,
+    "heart_rate": null,
+    "spo2_percent": null,
+    "unit": "mmHg",
+    "source": "uploaded_document",
+    "source_document": "synthetic_complete_patient_record_v2.json",
+    "original_field": "vital_signs.blood_pressure"
+  },
+  "missing_information": [
+    {
+      "field": "height",
+      "status": "unknown",
+      "category": "demographics",
+      "description": "Patient height was not provided."
+    },
+    {
+      "field": "weight",
+      "status": "unknown",
+      "category": "demographics",
+      "description": "Patient weight was not provided."
+    }
+  ],
+  "clinical_notes_raw": null,
+  "metadata": {
+    "source": "Uploaded JSON",
+    "source_document": "synthetic_complete_patient_record_v2.json",
+    "extraction_timestamp": "2026-09-15T05:54:07.474Z",
+    "extracted_fields": [
+      "patient_id",
+      "age",
+      "sex",
+      "pregnancy_status",
+      "demographics.pregnancy_status",
+      "breastfeeding_status",
+      "demographics.breastfeeding_status",
+      "conditions",
+      "lab_values",
+      "labs",
+      "allergies",
+      "vital_signs",
+      "blood_pressure",
+      "ecog_performance_status",
+      "active_serious_infection",
+      "clinical_status.active_serious_infection",
+      "uncontrolled_cardiac_disease",
+      "clinical_status.uncontrolled_cardiac_disease",
+      "recent_systemic_anticancer_therapy",
+      "medications.recent_systemic_anticancer_therapy",
+      "investigational_therapy_hypersensitivity",
+      "medications.investigational_therapy_hypersensitivity",
+      "severe_hypersensitivity_to_investigational_therapy",
+      "safety_history.severe_hypersensitivity_to_investigational_therapy"
+    ],
+    "ecog_score": 1,
+    "ecog_performance_status": 1,
+    "active_serious_infection": false,
+    "infection": false,
+    "uncontrolled_cardiac_disease": false,
+    "cardiac_disease": false,
+    "recent_systemic_anticancer_therapy": false,
+    "recent_therapy": false,
+    "investigational_therapy_hypersensitivity": false,
+    "severe_hypersensitivity": false,
+    "severe_hypersensitivity_to_investigational_therapy": false,
+    "pregnancy_status": "not_pregnant",
+    "breastfeeding_status": false,
+    "clinical_status": {
+      "ecog_performance_status": 1,
+      "active_serious_infection": false,
+      "uncontrolled_cardiac_disease": false
+    },
+    "treatment_history": {
+      "recent_systemic_anticancer_therapy": false,
+      "investigational_therapy_hypersensitivity": false,
+      "severe_hypersensitivity_to_investigational_therapy": false
+    }
+  },
+  "clinical_status": {
+    "ecog_performance_status": 1,
+    "active_serious_infection": false,
+    "uncontrolled_cardiac_disease": false
+  },
+  "treatment_history": {
+    "recent_systemic_anticancer_therapy": false,
+    "investigational_therapy_hypersensitivity": false,
+    "severe_hypersensitivity_to_investigational_therapy": false
+  }
+}

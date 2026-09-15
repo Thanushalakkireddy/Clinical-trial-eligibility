@@ -1,0 +1,52 @@
+# =============================================================================
+# Render Blueprint — PRODUCTION backend deployment.
+#
+#   React frontend (Vercel)  ->  FastAPI (this service)  ->  PostgreSQL / Gemini
+#
+# Architecture: React  ->  FastAPI  ->  LangGraph (PostgreSQL checkpointing).
+# No Redis.
+#
+# Manual steps after "New Blueprint":
+#   1. Set GEMINI_API_KEY (created via the dashboard as a secret).
+#   2. Verify CORS_ORIGINS equals the actual Vercel frontend URL.
+# =============================================================================
+
+services:
+  - type: web
+    name: clinical-trial-eligibility-api
+    runtime: python
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Run Alembic migrations on the production database before each deploy.
+    # Migrations are additive/non-destructive; the app never calls
+    # drop_schema()/create_schema() against production.
+    preDeployCommand: alembic upgrade head
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_API_KEY
+        value: change-me
+        # Marked as a secret in the dashboard so it is never committed or exposed
+        # in build logs. Set the real value in the Render dashboard.
+        sync: false
+      - key: CORS_ORIGINS
+        value: replace-me-with-vercel-frontend-url
+        # Set to the REAL Vercel frontend origin, e.g.
+        #   https://clinical-trial-eligibility.vercel.app
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: clinical-trial-postgres
+          property: connectionString
+
+databases:
+  - name: clinical-trial-postgres
+    plan: starter

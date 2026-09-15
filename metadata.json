@@ -1,0 +1,7 @@
+{
+  "name": "Clinical Trial Eligibility System",
+  "description": "AI-assisted clinical trial eligibility analysis with traceable evidence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

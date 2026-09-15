@@ -1,0 +1,166 @@
+{
+  "trial_id": "SYN-ONC-001",
+  "count": 10,
+  "chunks": [
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-001",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-001",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "Age >= 18",
+      "source_page": 1,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "Age >= 18",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 1,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-002",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-002",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "Advanced solid tumor",
+      "source_page": 1,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "Advanced solid tumor",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 2,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-003",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-003",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "ECOG 0 or 1",
+      "source_page": 1,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "ECOG 0 or 1",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 3,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-004",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-004",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "eGFR >= 30",
+      "source_page": 1,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "eGFR >= 30",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 4,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-EXC-001",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "EXC-001",
+      "criterion_type": "exclusion",
+      "section": "Exclusion Criteria",
+      "text": "eGFR < 30",
+      "source_page": 2,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "eGFR < 30",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 1,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-EXC-002",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "EXC-002",
+      "criterion_type": "exclusion",
+      "section": "Exclusion Criteria",
+      "text": "Active serious infection",
+      "source_page": 2,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "Active serious infection",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 2,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-EXC-003",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "EXC-003",
+      "criterion_type": "exclusion",
+      "section": "Exclusion Criteria",
+      "text": "Uncontrolled cardiac disease",
+      "source_page": 2,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "Uncontrolled cardiac disease",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 3,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-EXC-004",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "EXC-004",
+      "criterion_type": "exclusion",
+      "section": "Exclusion Criteria",
+      "text": "Severe hypersensitivity",
+      "source_page": 2,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "Severe hypersensitivity",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 4,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-EXC-005",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "EXC-005",
+      "criterion_type": "exclusion",
+      "section": "Exclusion Criteria",
+      "text": "Recent systemic anticancer therapy within 14 days",
+      "source_page": 2,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "Recent systemic anticancer therapy within 14 days",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 5,
+        "protocol_metadata": {}
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-OTH-001",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "OTH-001",
+      "criterion_type": "other",
+      "section": "Other Requirements",
+      "text": "Written informed consent obtained prior to study procedures.",
+      "source_page": 1,
+      "source_document": "protocol.pdf",
+      "source_excerpt": "Written informed consent obtained prior to study procedures.",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 1,
+        "protocol_metadata": {}
+      }
+    }
+  ]
+}

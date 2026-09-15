@@ -1,0 +1,63 @@
+# =============================================================================
+# DEVELOPMENT-ONLY local compose file (legacy Node/Express app + local PostgreSQL).
+#
+# The PRODUCTION deployment does NOT use this file or Docker:
+#   - Frontend ......... Vercel (static React build)
+#   - Backend .......... Render (Python FastAPI, see render.yaml)
+#   - Database ......... Render PostgreSQL
+#   - No Redis
+#
+# Defaults below are for local development only and MUST NOT be used in
+# production (production secrets come from Render environment variables).
+# =============================================================================
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clinical_trial_app
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-clinical_trials}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # No default JWT secret: provide JWT_SECRET_KEY explicitly, otherwise the
+      # legacy auth endpoints fail closed.
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
+      - AUTH_CLINICIAN_PASSWORD=${AUTH_CLINICIAN_PASSWORD:-}
+      - AUTH_ADMIN_PASSWORD=${AUTH_ADMIN_PASSWORD:-}
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Local development PostgreSQL only. Production database is Render PostgreSQL.
+  db:
+    image: postgres:15-alpine
+    container_name: clinical_trial_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-clinical_trials}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-clinical_trials}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

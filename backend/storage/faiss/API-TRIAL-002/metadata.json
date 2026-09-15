@@ -1,0 +1,120 @@
+{
+  "trial_id": "API-TRIAL-002",
+  "count": 6,
+  "chunks": [
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-001",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-001",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "Age >= 18 years at the time of signing informed consent.",
+      "source_page": 12,
+      "source_document": "oncology_protocol_v1.pdf",
+      "source_excerpt": "Age >= 18 years at the time of signing",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 1,
+        "protocol_metadata": {
+          "version": "1.0",
+          "page_count": 45
+        }
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-002",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-002",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "Histologically or cytologically confirmed metastatic solid tumor refractory to standard therapy.",
+      "source_page": 12,
+      "source_document": "oncology_protocol_v1.pdf",
+      "source_excerpt": "confirmed metastatic solid tumor",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 2,
+        "protocol_metadata": {
+          "version": "1.0",
+          "page_count": 45
+        }
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-003",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-003",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "Adequate renal function defined as serum creatinine <= 1.5 x ULN or eGFR >= 30 mL/min/1.73m².",
+      "source_page": 13,
+      "source_document": "oncology_protocol_v1.pdf",
+      "source_excerpt": "eGFR >= 30 mL/min/1.73m²",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 3,
+        "protocol_metadata": {
+          "version": "1.0",
+          "page_count": 45
+        }
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-INC-004",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "INC-004",
+      "criterion_type": "inclusion",
+      "section": "Inclusion Criteria",
+      "text": "Absolute neutrophil count (ANC) >= 1500/uL and platelets >= 100,000/uL.",
+      "source_page": 13,
+      "source_document": "oncology_protocol_v1.pdf",
+      "source_excerpt": "ANC >= 1500/uL and platelets >= 100,000/uL",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 4,
+        "protocol_metadata": {
+          "version": "1.0",
+          "page_count": 45
+        }
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-EXC-001",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "EXC-001",
+      "criterion_type": "exclusion",
+      "section": "Exclusion Criteria",
+      "text": "Active brain metastases or leptomeningeal disease requiring ongoing corticosteroids.",
+      "source_page": 14,
+      "source_document": "oncology_protocol_v1.pdf",
+      "source_excerpt": "Active brain metastases",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 1,
+        "protocol_metadata": {
+          "version": "1.0",
+          "page_count": 45
+        }
+      }
+    },
+    {
+      "chunk_id": "CHK-SYN-ONC-001-EXC-002",
+      "trial_id": "SYN-ONC-001",
+      "criterion_id": "EXC-002",
+      "criterion_type": "exclusion",
+      "section": "Exclusion Criteria",
+      "text": "ECOG performance status >= 2.",
+      "source_page": 14,
+      "source_document": "oncology_protocol_v1.pdf",
+      "source_excerpt": "ECOG performance status >= 2",
+      "metadata": {
+        "source_type": "protocol_criterion",
+        "criterion_index": 2,
+        "protocol_metadata": {
+          "version": "1.0",
+          "page_count": 45
+        }
+      }
+    }
+  ]
+}
