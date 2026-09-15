@@ -147,14 +147,37 @@ async def extract_protocol_endpoint(
     agent = ProtocolExtractionAgent()
     try:
         extracted = await agent.extract_protocol(pdf_doc=pdf_doc, trial_id=clean_trial_id)
+        logger.info(
+            "Protocol extracted successfully: trial_id=%s inclusions=%d exclusions=%d others=%d",
+            clean_trial_id,
+            len(extracted.inclusion_criteria),
+            len(extracted.exclusion_criteria),
+            len(extracted.other_requirements),
+        )
         return extracted
     except ProtocolExtractionError as err:
+        safe_msg = str(err)
+        text_len = sum(len(p.text) for p in pdf_doc.pages)
+        logger.warning(
+            "Protocol extraction validation failed: trial_id=%s filename=%s bytes=%d pages=%d text_len=%d error=%s",
+            clean_trial_id,
+            safe_name,
+            total_bytes,
+            pdf_doc.total_pages,
+            text_len,
+            safe_msg,
+        )
+        detail_msg = (
+            safe_msg
+            if safe_msg.startswith("Protocol extraction validation failed")
+            else f"Protocol extraction validation failed: {safe_msg}"
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Protocol extraction validation failed.",
+            detail=detail_msg,
         ) from err
     except Exception as err:
-        logger.error("Protocol extraction error: %s", type(err).__name__)
+        logger.error("Protocol extraction error: %s: %s", type(err).__name__, err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Protocol extraction failed.",

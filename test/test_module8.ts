@@ -1,4 +1,5 @@
 import { evaluateFinalEligibility } from '../server/decisionReviewer';
+import { deriveTrialIdFromFilename } from '../frontend/src/services/api';
 import {
   InclusionEvaluationResponse,
   ExclusionEvaluationResponse,
@@ -333,6 +334,30 @@ console.log('🧪 Starting Module 8 Decision Reviewer Test Suite...\n');
   const res = evaluateFinalEligibility('trial-prio', 'pat-prio', incResp, excResp, null);
   assert(res.final_decision === 'NOT_ELIGIBLE', 'Priority check: Disqualification must override UNKNOWN');
   console.log('✅ Priority check passed: Disqualification overrides UNKNOWN');
+}
+
+// -----------------------------------------------------------------------------
+// TEST 6 — DETERMINISTIC TRIAL ID DERIVATION
+// -----------------------------------------------------------------------------
+{
+  const testCases: [string, string][] = [
+    ['SYN_CARDIO_001_Acute_Myocardial_Infarction_Clinical_Trial_Protocol.pdf', 'SYN-CARDIO-001'],
+    ['SYN-CARDIO-001-Protocol.pdf', 'SYN-CARDIO-001'],
+    ['SYN_ONC_001_protocol.pdf', 'SYN-ONC-001'],
+    ['TRIAL-999_protocol.pdf', 'TRIAL-999'],
+    ['TRIAL-999.pdf', 'TRIAL-999'],
+    ['TRIAL_001.pdf', 'TRIAL-001'],
+    ['NCT01234567_Phase_3.pdf', 'NCT01234567'],
+    ['NCT-01234567.pdf', 'NCT-01234567'],
+    ['CARDIO-101.pdf', 'CARDIO-101'],
+    ['CARDIO_101_Study_Protocol.pdf', 'CARDIO-101'],
+  ];
+
+  for (const [filename, expected] of testCases) {
+    const derived = deriveTrialIdFromFilename(filename);
+    assert(derived === expected, `Expected "${expected}" from "${filename}", but got "${derived}"`);
+  }
+  console.log('✅ TEST 6 passed: Deterministic trial ID derivation');
 }
 
 console.log('\n🎉 ALL MODULE 8 TESTS PASSED SUCCESSFULLY!\n');

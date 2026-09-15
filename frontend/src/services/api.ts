@@ -36,20 +36,53 @@ export async function getHealthStatus(): Promise<HealthResponse> {
 
 /**
  * Helper to derive or sanitize a valid trial_id from a protocol filename.
- * Must produce alphanumeric characters, dashes, and underscores (matching FastAPI clean_trial_id format).
+ * Implements deterministic clinical trial identifier conventions:
+ * 1. NCT numbers (e.g. NCT01234567, NCT-01234567)
+ * 2. 3-part codes with trailing number (e.g. SYN_CARDIO_001, SYN-CARDIO-001 -> SYN-CARDIO-001)
+ * 3. 2-part codes with trailing number (e.g. TRIAL-999, CARDIO-101 -> TRIAL-999)
+ * 4. Trial codes preceding standard keywords (protocol, clinical, study, draft, v1, etc.)
+ * 5. General sanitized alphanumeric fallback (max 32 chars).
  */
 export function deriveTrialIdFromFilename(filename: string): string {
-  // Check for common trial code patterns like SYN-CARDIO-001, SYN_CARDIO_001, NCT12345678, TRIAL-999
-  const patternMatch = filename.match(/\b([A-Za-z0-9]+[-_][A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)?)\b/);
-  if (patternMatch) {
-    return patternMatch[1].replace(/_/g, '-');
+  if (!filename) return 'TRIAL-001';
+
+  // 1. NCT numbers: e.g. NCT01234567 or NCT-01234567
+  const nctMatch = filename.match(/(?:^|[^a-zA-Z0-9])(NCT[-_]?\d{8})(?:[^a-zA-Z0-9]|$)/i);
+  if (nctMatch) {
+    return nctMatch[1].toUpperCase().replace('_', '-');
   }
-  const clean = filename
-    .replace(/\.[^/.]+$/, '')
+
+  // Strip extension
+  const baseName = filename.replace(/\.[^/.]+$/, '');
+
+  // 2. Standard 3-part clinical trial codes with trailing number/code:
+  // e.g., SYN_CARDIO_001_Acute_... -> SYN-CARDIO-001
+  const threePartCode = baseName.match(/^([A-Za-z]{2,10}[-_][A-Za-z0-9]{2,12}[-_]\d{1,8})(?:[-_]|$)/i);
+  if (threePartCode) {
+    return threePartCode[1].toUpperCase().replace(/_/g, '-');
+  }
+
+  // 3. Standard 2-part clinical trial codes with trailing number:
+  // e.g., TRIAL-999, TRIAL_001, CARDIO-101, ONC-002, STUDY-1
+  const twoPartCode = baseName.match(/^([A-Za-z]{2,10}[-_]\d{1,8})(?:[-_]|$)/i);
+  if (twoPartCode) {
+    return twoPartCode[1].toUpperCase().replace(/_/g, '-');
+  }
+
+  // 4. Code followed by standard document suffix (protocol, study, phase, clinical, draft, final, v1):
+  // e.g. CARDIO-101_Study_Protocol, TRIAL_A_Protocol
+  const suffixMatch = baseName.match(/^([A-Za-z0-9]+(?:[-_][A-Za-z0-9]+){1,3}?)(?:[-_](?:protocol|phase|clinical|trial|study|v\d+|\d{4}|final|draft|amendment))/i);
+  if (suffixMatch) {
+    return suffixMatch[1].toUpperCase().replace(/_/g, '-');
+  }
+
+  // 5. Fallback: sanitize base name to alphanumeric, dashes, and underscores (max 32 chars)
+  const clean = baseName
     .replace(/[^a-zA-Z0-9_-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^[-_]+|[-_]+$/g, '')
     .slice(0, 32);
+
   return clean || `trial-${Date.now().toString(36)}`;
 }
 

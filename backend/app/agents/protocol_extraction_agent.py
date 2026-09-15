@@ -71,8 +71,19 @@ class ProtocolExtractionAgent:
         if not pdf_doc.pages or pdf_doc.total_pages == 0:
             raise ProtocolExtractionError("Cannot extract protocol from an empty PDF document.")
 
+        total_text_len = sum(len(p.text) for p in pdf_doc.pages)
+        logger.info(
+            "Starting protocol extraction: trial_id=%s filename=%s pages=%d chars=%d",
+            trial_id,
+            pdf_doc.filename,
+            pdf_doc.total_pages,
+            total_text_len,
+        )
+
         prompt = self._build_extraction_prompt(pdf_doc, trial_id)
 
+        raw_result = None
+        llm_error: Optional[Exception] = None
         try:
             raw_result = await self.llm_service.generate_json(
                 prompt=prompt,
@@ -80,13 +91,50 @@ class ProtocolExtractionAgent:
                 temperature=0.0,  # Zero temperature for deterministic, factual extraction
             )
         except Exception as err:
-            logger.error("LLM extraction failed for trial %s: %s", trial_id, err)
-            raise ProtocolExtractionError(f"LLM protocol extraction failed: {err}") from err
+            llm_error = err
+            logger.warning(
+                "LLM extraction unavailable for trial %s (%s: %s). Falling back to deterministic protocol parser...",
+                trial_id,
+                type(err).__name__,
+                str(err),
+            )
 
-        if not isinstance(raw_result, dict):
-            raise ProtocolExtractionError("LLM returned non-dictionary response format.")
+        if isinstance(raw_result, dict):
+            try:
+                protocol = self._build_and_validate_protocol(raw_result, pdf_doc, trial_id)
+                if len(protocol.inclusion_criteria) > 0 or len(protocol.exclusion_criteria) > 0:
+                    return protocol
+            except Exception as val_err:
+                logger.warning(
+                    "LLM response parsing/validation yielded no criteria for trial %s (%s). Attempting deterministic fallback...",
+                    trial_id,
+                    val_err,
+                )
 
-        return self._build_and_validate_protocol(raw_result, pdf_doc, trial_id)
+        # Fallback to deterministic document parsing from PDF pages
+        deterministic_protocol = self._extract_deterministically(pdf_doc, trial_id)
+        if (
+            len(deterministic_protocol.inclusion_criteria) > 0
+            or len(deterministic_protocol.exclusion_criteria) > 0
+        ):
+            logger.info(
+                "Deterministic extraction succeeded for trial %s: %d inclusions, %d exclusions",
+                trial_id,
+                len(deterministic_protocol.inclusion_criteria),
+                len(deterministic_protocol.exclusion_criteria),
+            )
+            return deterministic_protocol
+
+        # If both LLM and deterministic extraction failed to identify criteria
+        if llm_error is not None:
+            raise ProtocolExtractionError(
+                f"Document '{pdf_doc.filename}' contains no identifiable clinical trial inclusion or exclusion criteria "
+                f"(LLM extraction failed: {type(llm_error).__name__}). Non-protocol documents (e.g. resumes, invoices, general texts) cannot be processed."
+            )
+        raise ProtocolExtractionError(
+            f"Protocol validation failed: Document '{pdf_doc.filename}' contains no identifiable clinical trial "
+            "inclusion or exclusion criteria. Non-protocol documents (e.g. resumes, invoices, general texts) cannot be processed."
+        )
 
     def _build_extraction_prompt(self, pdf_doc: PDFDocument, trial_id: str) -> str:
         """Construct prompt packaging page-numbered text with instructions."""
@@ -166,7 +214,13 @@ Respond strictly with valid JSON conforming to this schema:
         title = str(raw_data.get("title") or "").strip()
 
         # Parse inclusion criteria with deterministic IDs (INC-001, INC-002, ...)
-        raw_inclusions = raw_data.get("inclusion_criteria") or []
+        raw_inclusions = (
+            raw_data.get("inclusion_criteria")
+            or raw_data.get("inclusions")
+            or raw_data.get("inclusion")
+            or raw_data.get("key_inclusion_criteria")
+            or []
+        )
         inclusion_criteria: List[ProtocolCriterion] = []
         for idx, item in enumerate(raw_inclusions, start=1):
             crit = self._normalize_criterion(
@@ -181,7 +235,13 @@ Respond strictly with valid JSON conforming to this schema:
                 inclusion_criteria.append(crit)
 
         # Parse exclusion criteria with deterministic IDs (EXC-001, EXC-002, ...)
-        raw_exclusions = raw_data.get("exclusion_criteria") or []
+        raw_exclusions = (
+            raw_data.get("exclusion_criteria")
+            or raw_data.get("exclusions")
+            or raw_data.get("exclusion")
+            or raw_data.get("key_exclusion_criteria")
+            or []
+        )
         exclusion_criteria: List[ProtocolCriterion] = []
         for idx, item in enumerate(raw_exclusions, start=1):
             crit = self._normalize_criterion(
@@ -196,7 +256,12 @@ Respond strictly with valid JSON conforming to this schema:
                 exclusion_criteria.append(crit)
 
         # Parse other requirements with deterministic IDs (OTHER-001, ...)
-        raw_others = raw_data.get("other_requirements") or []
+        raw_others = (
+            raw_data.get("other_requirements")
+            or raw_data.get("other_criteria")
+            or raw_data.get("other")
+            or []
+        )
         other_requirements: List[ProtocolCriterion] = []
         for idx, item in enumerate(raw_others, start=1):
             crit = self._normalize_criterion(
@@ -244,15 +309,37 @@ Respond strictly with valid JSON conforming to this schema:
         total_pages: int,
     ) -> Optional[ProtocolCriterion]:
         """Validate and construct an individual criterion with deterministic ID."""
+        if isinstance(item, str):
+            clean_str = item.strip()
+            # Strip leading numbering like '1. ', '1) ', or bullet
+            clean_str = re.sub(r"^(?:(?:\d+|[a-zA-Z])[\.\)]|\u2022|\-|\*|\[\d+\])\s*", "", clean_str).strip()
+            if not clean_str:
+                return None
+            return ProtocolCriterion(
+                criterion_id=f"{prefix}-{index:03d}",
+                type=criterion_type,
+                text=clean_str,
+                source_page=1,
+                section=f"{criterion_type.value.capitalize()} Criteria",
+                source_excerpt=clean_str[:200],
+                trial_id=trial_id,
+            )
+
         if not isinstance(item, dict):
             return None
 
-        text = str(item.get("text") or "").strip()
+        text = str(
+            item.get("text")
+            or item.get("criterion")
+            or item.get("description")
+            or item.get("requirement")
+            or ""
+        ).strip()
         if not text:
             return None
 
         # Validate source page
-        raw_page = item.get("source_page", 1)
+        raw_page = item.get("source_page", item.get("page", item.get("page_number", 1)))
         try:
             page_num = int(raw_page)
             if page_num < 1:
@@ -262,10 +349,12 @@ Respond strictly with valid JSON conforming to this schema:
         except (ValueError, TypeError):
             page_num = 1
 
-        section = str(item.get("section") or f"{criterion_type.value.capitalize()} Criteria").strip()
-        source_excerpt = item.get("source_excerpt")
+        section = str(item.get("section") or item.get("heading") or f"{criterion_type.value.capitalize()} Criteria").strip()
+        source_excerpt = item.get("source_excerpt") or item.get("excerpt") or item.get("quote")
         if source_excerpt:
             source_excerpt = str(source_excerpt).strip()
+        else:
+            source_excerpt = text[:200]
 
         criterion_id = f"{prefix}-{index:03d}"
 
@@ -277,4 +366,166 @@ Respond strictly with valid JSON conforming to this schema:
             section=section,
             source_excerpt=source_excerpt,
             trial_id=trial_id,
+        )
+
+    def _extract_deterministically(
+        self,
+        pdf_doc: PDFDocument,
+        trial_id: str,
+    ) -> ExtractedProtocol:
+        """Deterministically extract protocol criteria from PDFDocument pages.
+
+        Acts as a reliable, grounded fallback when LLM service is offline or fails.
+        Extracts sections, assigns exact 1-indexed source pages, excerpts, and deterministic IDs.
+        """
+        inc_raw: List[Dict[str, Any]] = []
+        exc_raw: List[Dict[str, Any]] = []
+        other_raw: List[Dict[str, Any]] = []
+
+        extracted_protocol_id = trial_id
+        extracted_title = ""
+
+        item_re = re.compile(r"^(?:(?:\d+|[a-zA-Z])[\.\)]|\u2022|\-|\*|\[\d+\])\s*(.+)", re.UNICODE)
+
+        current_mode: Optional[str] = None  # 'INC', 'EXC', 'OTHER'
+        current_text: str = ""
+        current_page: int = 1
+        current_section: str = ""
+
+        def flush_current():
+            nonlocal current_text, current_mode, current_page, current_section
+            if not current_text or not current_mode:
+                current_text = ""
+                return
+            cleaned = re.sub(r"\s+", " ", current_text).strip()
+            if len(cleaned) >= 8:
+                item = {
+                    "text": cleaned,
+                    "source_page": current_page,
+                    "section": current_section,
+                    "source_excerpt": cleaned[:200],
+                }
+                if current_mode == "INC":
+                    inc_raw.append(item)
+                elif current_mode == "EXC":
+                    exc_raw.append(item)
+                elif current_mode == "OTHER":
+                    other_raw.append(item)
+            current_text = ""
+
+        for p in pdf_doc.pages:
+            lines = [l.strip() for l in p.text.splitlines() if l.strip()]
+            for line in lines:
+                # Look for protocol ID e.g. Protocol ID: SYN-CARDIO-001
+                if not extracted_protocol_id or extracted_protocol_id == trial_id:
+                    proto_m = re.search(r"(?:protocol\s*(?:id|number|no\.?|code)\s*[:#-]?\s*)([A-Za-z0-9_-]{4,30})", line, re.I)
+                    if proto_m:
+                        extracted_protocol_id = proto_m.group(1).strip()
+
+                # Look for title on first page
+                if not extracted_title and p.page_number == 1:
+                    if "protocol" in line.lower() and not re.search(r"protocol\s*id", line, re.I):
+                        extracted_title = line.strip()
+
+                # Section header detection
+                if re.search(r"^(?:key\s+)?inclusion\s+(?:criteria|requirements)\b", line, re.I):
+                    flush_current()
+                    current_mode = "INC"
+                    current_page = p.page_number
+                    current_section = "Inclusion Criteria"
+                    continue
+                elif re.search(r"^(?:key\s+)?exclusion\s+(?:criteria|requirements)\b", line, re.I):
+                    flush_current()
+                    current_mode = "EXC"
+                    current_page = p.page_number
+                    current_section = "Exclusion Criteria"
+                    continue
+                elif re.search(r"^(?:study\s+parameters|other\s+requirements|eligibility\s+overview)\b", line, re.I):
+                    flush_current()
+                    current_mode = "OTHER"
+                    current_page = p.page_number
+                    current_section = "Other Requirements"
+                    continue
+                elif re.search(
+                    r"^(?:study\s+procedures|safety\s+monitoring|statistical\s+analysis|discontinuation|endpoints|references)\b",
+                    line,
+                    re.I,
+                ):
+                    flush_current()
+                    current_mode = None
+                    continue
+
+                if current_mode:
+                    m = item_re.match(line)
+                    if m:
+                        flush_current()
+                        current_text = m.group(1)
+                        current_page = p.page_number
+                    elif current_text:
+                        current_text += " " + line
+                    elif len(line) >= 20 and not re.match(r"^(?:inclusion|exclusion|criteria|section|page)\b", line, re.I):
+                        current_text = line
+                        current_page = p.page_number
+
+        flush_current()
+
+        # Build normalized criteria
+        inclusions: List[ProtocolCriterion] = []
+        for idx, item in enumerate(inc_raw, start=1):
+            crit = self._normalize_criterion(
+                item=item,
+                prefix="INC",
+                index=idx,
+                criterion_type=CriterionType.INCLUSION,
+                trial_id=trial_id,
+                total_pages=pdf_doc.total_pages,
+            )
+            if crit:
+                inclusions.append(crit)
+
+        exclusions: List[ProtocolCriterion] = []
+        for idx, item in enumerate(exc_raw, start=1):
+            crit = self._normalize_criterion(
+                item=item,
+                prefix="EXC",
+                index=idx,
+                criterion_type=CriterionType.EXCLUSION,
+                trial_id=trial_id,
+                total_pages=pdf_doc.total_pages,
+            )
+            if crit:
+                exclusions.append(crit)
+
+        others: List[ProtocolCriterion] = []
+        for idx, item in enumerate(other_raw, start=1):
+            crit = self._normalize_criterion(
+                item=item,
+                prefix="OTHER",
+                index=idx,
+                criterion_type=CriterionType.OTHER,
+                trial_id=trial_id,
+                total_pages=pdf_doc.total_pages,
+            )
+            if crit:
+                others.append(crit)
+
+        if not extracted_title:
+            extracted_title = pdf_doc.filename.replace(".pdf", "").replace("_", " ")
+
+        return ExtractedProtocol(
+            trial_id=trial_id,
+            protocol_id=extracted_protocol_id or trial_id,
+            title=extracted_title,
+            inclusion_criteria=inclusions,
+            exclusion_criteria=exclusions,
+            other_requirements=others,
+            source_document=pdf_doc.filename,
+            extraction_metadata={
+                "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "total_pages": pdf_doc.total_pages,
+                "model": "deterministic_fallback_extractor",
+                "inclusion_count": len(inclusions),
+                "exclusion_count": len(exclusions),
+                "other_count": len(others),
+            },
         )
