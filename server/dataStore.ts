@@ -296,26 +296,56 @@ export class DataStore {
 
   public getTrials(): Array<{
     trial_id: string;
+    protocol_id?: string;
+    trial_identifier?: string;
+    trial_title?: string;
+    title?: string;
     filename: string;
     status: string;
+    processing_status?: string;
     file_size_bytes?: number;
     upload_date?: string;
+    inclusion_criteria?: any[];
+    exclusion_criteria?: any[];
+    other_requirements?: any[];
+    total_pages_analyzed?: number;
+    source_document?: string;
+    extraction_metadata?: any;
   }> {
-    const list: Array<{
-      trial_id: string;
-      filename: string;
-      status: string;
-      file_size_bytes?: number;
-      upload_date?: string;
-    }> = [];
+    // Ensure all trials in this.trials are registered with trialFiles metadata
+    for (const [id, trial] of this.trials.entries()) {
+      if (!this.trialFiles.has(id)) {
+        this.trialFiles.set(id, {
+          filename: (trial as any).source_document || (trial as any).original_filename || `${trial.trial_title || id}.pdf`,
+          size: (trial as any).size_bytes || 102400,
+          uploadDate: (trial as any).uploaded_at || new Date().toISOString(),
+        });
+      }
+    }
+
+    const list: Array<any> = [];
 
     for (const [id, meta] of this.trialFiles.entries()) {
+      const trial = this.trials.get(id);
+      const title = trial?.trial_title || (trial as any)?.title || meta.filename.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
+      const identifier = trial?.trial_identifier || (trial as any)?.protocol_id || id;
       list.push({
         trial_id: id,
+        protocol_id: identifier,
+        trial_identifier: identifier,
+        trial_title: title,
+        title: title,
         filename: meta.filename,
-        status: 'processed',
+        status: trial?.processing_status || 'processed',
+        processing_status: trial?.processing_status || 'completed',
         file_size_bytes: meta.size,
         upload_date: meta.uploadDate,
+        inclusion_criteria: trial?.inclusion_criteria || [],
+        exclusion_criteria: trial?.exclusion_criteria || [],
+        other_requirements: trial?.other_requirements || [],
+        total_pages_analyzed: trial?.total_pages_analyzed || 1,
+        source_document: meta.filename,
+        extraction_metadata: (trial as any)?.extraction_metadata || {},
       });
     }
 

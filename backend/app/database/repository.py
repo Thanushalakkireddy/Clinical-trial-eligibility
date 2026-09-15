@@ -39,13 +39,23 @@ async def create_protocol(
     existing = await session.get(ProtocolRecord, trial_id)
     if existing is not None:
         if protocol_metadata is not None:
-            existing.protocol_metadata = encode_json(protocol_metadata)
+            existing_meta = decode_json(existing.protocol_metadata, default={}) or {}
+            if isinstance(existing_meta, dict) and existing_meta.get("inclusion_criteria"):
+                merged_meta = dict(existing_meta)
+                if isinstance(protocol_metadata, dict):
+                    for k, v in protocol_metadata.items():
+                        if k not in merged_meta or not merged_meta[k]:
+                            merged_meta[k] = v
+                existing.protocol_metadata = encode_json(merged_meta)
+            else:
+                existing.protocol_metadata = encode_json(protocol_metadata)
         if source_document is not None:
             existing.source_document = source_document
         if source_page_count is not None:
             existing.source_page_count = source_page_count
         if criteria is not None:
-            existing.criteria = encode_json(criteria)
+            if criteria or not existing.criteria:
+                existing.criteria = encode_json(criteria)
         record = existing
     else:
         record = ProtocolRecord(
@@ -63,6 +73,13 @@ async def create_protocol(
 async def get_protocol(session: AsyncSession, trial_id: str) -> Optional[ProtocolRecord]:
     """Return the protocol record for a trial, or None."""
     return await session.get(ProtocolRecord, trial_id)
+
+
+async def list_protocols(session: AsyncSession) -> Sequence[ProtocolRecord]:
+    """Return all stored protocol records ordered by created_at desc (newest first)."""
+    stmt = select(ProtocolRecord).order_by(ProtocolRecord.created_at.desc(), ProtocolRecord.trial_id)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +118,13 @@ async def create_patient(
 async def get_patient(session: AsyncSession, patient_profile_id: str) -> Optional[PatientRecord]:
     """Return the patient profile record, or None."""
     return await session.get(PatientRecord, patient_profile_id)
+
+
+async def list_patients(session: AsyncSession) -> Sequence[PatientRecord]:
+    """Return all stored patient records ordered by created_at desc (newest first)."""
+    stmt = select(PatientRecord).order_by(PatientRecord.created_at.desc(), PatientRecord.patient_profile_id)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
 
 
 # ---------------------------------------------------------------------------

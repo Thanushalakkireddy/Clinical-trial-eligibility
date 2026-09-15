@@ -230,7 +230,9 @@ export const DecisionReviewerEvaluator: React.FC<DecisionReviewerEvaluatorProps>
                     <option value="">Search and select a clinical trial...</option>
                     {trials.map((t) => (
                       <option key={t.trial_id} value={t.trial_id}>
-                        {t.trial_title} ({t.trial_identifier || t.trial_id})
+                        {t.trial_title && t.trial_title !== (t.trial_identifier || t.trial_id)
+                          ? `${t.trial_identifier || t.trial_id} — ${t.trial_title}`
+                          : (t.trial_identifier || t.trial_id)}
                       </option>
                     ))}
                   </select>

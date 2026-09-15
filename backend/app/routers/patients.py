@@ -16,7 +16,7 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
 
 from app.agents.patient_profile_agent import PatientProfileAgent
 from app.config import settings
-from app.database.repository import create_patient, get_patient
+from app.database.repository import create_patient, get_patient, list_patients
 from app.database.serialization import decode_json, encode_json
 from app.database.session import get_session_maker, persist_is_configured
 from app.pdf.processor import (
@@ -255,9 +255,24 @@ async def save_patient_profile_endpoint(request: Request) -> Dict[str, Any]:
     summary="List stored patient profiles",
 )
 async def list_patients_endpoint() -> List[Dict[str, Any]]:
-    """Return all stored patient profiles."""
-    patients: List[Dict[str, Any]] = list(_IN_MEMORY_PATIENTS.values())
-    return patients
+    """Return all stored patient profiles from memory or database."""
+    patients_map: Dict[str, Dict[str, Any]] = dict(_IN_MEMORY_PATIENTS)
+
+    if persist_is_configured():
+        try:
+            async with get_session_maker()() as session:
+                records = await list_patients(session)
+                for rec in records:
+                    if rec.profile_json:
+                        data = decode_json(rec.profile_json)
+                        if isinstance(data, dict):
+                            pid = rec.patient_profile_id
+                            patients_map[pid] = data
+                            _IN_MEMORY_PATIENTS[pid] = data
+        except Exception as err:
+            logger.warning("Failed to fetch patients from database: %s", err)
+
+    return list(patients_map.values())
 
 
 @router.get(

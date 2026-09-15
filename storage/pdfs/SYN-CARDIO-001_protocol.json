@@ -1,7 +1,14 @@
 {
   "trial_id": "SYN-CARDIO-001",
-  "trial_title": "SYN CARDIO 001 Acute Myocardial Infarction Clinical Trial Protocol",
+  "protocol_id": "SYN-CARDIO-001",
   "trial_identifier": "SYN-CARDIO-001",
+  "trial_title": "SYN CARDIO 001 Acute Myocardial Infarction Clinical Trial Protocol",
+  "title": "SYN CARDIO 001 Acute Myocardial Infarction Clinical Trial Protocol",
+  "filename": "SYN CARDIO 001 Acute Myocardial Infarction Clinical Trial Protocol.pdf",
+  "status": "completed",
+  "processing_status": "completed",
+  "file_size_bytes": 102400,
+  "upload_date": "2026-09-15T15:38:26.596Z",
   "inclusion_criteria": [
     {
       "criterion_id": "INC-001",
@@ -207,6 +214,7 @@
   "other_requirements": [
     "Written informed consent obtained prior to trial enrollment."
   ],
-  "processing_status": "completed",
-  "total_pages_analyzed": 1
+  "total_pages_analyzed": 1,
+  "source_document": "SYN CARDIO 001 Acute Myocardial Infarction Clinical Trial Protocol.pdf",
+  "extraction_metadata": {}
 }

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx test/test_module8.ts && tsx test/test_synthetic_patients.ts && tsx test/test_module9.ts && tsx test/test_workflow.ts"
+    "test": "tsx test/test_module8.ts && tsx test/test_synthetic_patients.ts && tsx test/test_module9.ts && tsx test/test_workflow.ts && tsx test/test_trials_persistence.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
